@@ -4,7 +4,6 @@ name: CI
 on:
   push:
     branches: [main]
-    tags: ['v*']
   pull_request:
     branches: [main]
 
@@ -13,7 +12,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -21,8 +20,8 @@ jobs:
     permissions:
       contents: read
       checks: write
-    outputs:
-      version: ${{ steps.version.outputs.version }}
+    env:
+      ORG_GRADLE_PROJECT_snapshot: 'true'
     steps:
       - name: Checkout code and tags
         uses: actions/checkout@v6
@@ -51,11 +50,14 @@ jobs:
       - name: Build and test on Java 11 and Java 25
         env:
           JAVA_TOOLCHAIN_PATHS: ${{ steps.java11.outputs.path }},${{ steps.java25.outputs.path }}
-        run: ./gradlew build printSemver -Porg.gradle.java.installations.paths="$JAVA_TOOLCHAIN_PATHS"
+        run: ./gradlew build -Porg.gradle.java.installations.paths="$JAVA_TOOLCHAIN_PATHS"
 
-      - name: Read artifact version
-        id: version
-        run: echo "version=$(head -n 1 build/semver/version.txt)" >> "$GITHUB_OUTPUT"
+      - name: Publish snapshot to Central
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
+        run: ./gradlew publishAggregationToCentralSnapshots
 
       - name: Upload JARs
         uses: actions/upload-artifact@v6
@@ -92,9 +94,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    concurrency:
-      group: draft-release-${{ needs.build.outputs.version }}
-      cancel-in-progress: false
     steps:
       - name: Download JARs from this build
         uses: actions/download-artifact@v6
@@ -105,12 +104,13 @@ jobs:
       - name: Create or update draft release
         uses: ncipollo/release-action@v1
         with:
-          tag: v${{ needs.build.outputs.version }}
+          tag: development-preview
           commit: ${{ github.sha }}
-          name: Traceur Ditaa ${{ needs.build.outputs.version }}
+          name: Development preview
           draft: true
           allowUpdates: true
           skipIfReleaseExists: true
+          removeArtifacts: true
           artifactErrorsFailBuild: true
           artifacts: artifacts/*.jar
           makeLatest: false

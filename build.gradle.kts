@@ -32,6 +32,7 @@ tasks.withType<Test>().configureEach {
 
 tasks.withType<Jar>().configureEach {
     from("LICENSE") { into("META-INF") }
+    manifest.attributes("Implementation-Version" to project.version.toString())
 }
 
 tasks.register<Test>("testJava11") {
@@ -41,7 +42,9 @@ tasks.register<Test>("testJava11") {
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(11) }
 }
 
-tasks.check { dependsOn("testJava11") }
+tasks.check {
+    dependsOn("testJava11", gradle.includedBuild("build-logic").task(":check"))
+}
 
 val tools by sourceSets.creating
 tools.compileClasspath += sourceSets.main.get().output
@@ -74,14 +77,6 @@ tasks.register<JavaExec>("benchmarkColdStart") {
 publishing {
     publications.create<MavenPublication>("library") {
         from(components["java"])
-        // Maven snapshots share coordinates while JAR filenames retain the Git revision.
-        version = project.version.toString().let { version ->
-            if (version.contains('+')) {
-                version.substringBefore('+').replace(Regex("\\.\\d+$"), "") + "-SNAPSHOT"
-            } else {
-                version
-            }
-        }
         pom {
             name = "Traceur Ditaa"
             description = "An independent, MPL-2.0 renderer for ditaa diagrams"
@@ -95,6 +90,13 @@ publishing {
                 license {
                     name = "Mozilla Public License 2.0"
                     url = "https://www.mozilla.org/MPL/2.0/"
+                }
+            }
+            developers {
+                developer {
+                    id = "bric3"
+                    name = "Brice Dutheil"
+                    url = "https://github.com/bric3"
                 }
             }
         }

@@ -53,23 +53,75 @@ the installed JDKs.
 
 ## Versions and CI
 
-Versioning follows [jardiff](https://github.com/bric3/jardiff) using Javier Segovia's
-[Semver plugin](https://github.com/JavierSegoviaCordoba/semver-gradle-plugin) 0.9.0.
-Git tags are the version source: a clean `v0.0.1` checkout builds as `0.0.1`.
-Development versions include the commit count and hash; modified checkouts append
-`DIRTY`. Maven publication coordinates use `-SNAPSHOT` for development versions.
+Git tags supply release versions. Development builds use Javier Segovia's
+[Semver plugin](https://github.com/JavierSegoviaCordoba/semver-gradle-plugin) 0.9.0
+to select the next patch version with `-SNAPSHOT`. A clean `v0.0.1` checkout builds
+as `0.0.1`; later commits build as `0.0.2-SNAPSHOT`. Between `v0.0.2-rc.1` and
+`v0.0.2`, development builds remain `0.0.2-SNAPSHOT`. The POM, JAR filenames and
+`Implementation-Version` manifest entry use the same version.
 
 ```sh
 ./gradlew printSemver
 ```
 
-The calculated version and prefixed tag are written to `build/semver/version.txt`.
-Create annotated `vMAJOR.MINOR.PATCH` tags on tested commits to cut new versions.
+Development builds write the calculated version to `build/semver/version.txt`.
+[CI](.github/workflows/ci.yml) builds and tests pull requests and pushes to `main`.
+Successful `main` builds publish snapshots and update one draft named
+"Development preview", with tag `development-preview` and the tested JARs.
 
-[CI](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and `v*`
-tags. It validates the wrapper, builds and tests, and uploads JARs and test reports.
-Successful pushes create or update a draft release from those same JARs.
-Published releases are preserved. Publication remains a manual decision.
+To release, open GitHub's **Releases > Draft a new release**, select the target
+commit and enter `v0.0.2-rc.1` for a prerelease or `v0.0.2` for the final release.
+The target commit must contain the publishing configuration.
+Set the prerelease checkbox to match the tag, then click **Publish release**.
+The [release workflow](.github/workflows/release.yml) checks out that exact tag,
+builds and tests, attaches the JARs, signs the artifacts and publishes to Central.
+Keep GitHub releases mutable so the workflow can attach JARs after publication.
+
+## Maven Central setup
+
+The `traceur.central-publication` settings convention in `build-logic` configures
+[Nmcp](https://gradleup.com/nmcp/) 1.6.2 and Gradle signing. The library build owns
+the Maven publication and POM metadata.
+
+Before enabling publishing:
+
+1. Create `bric3/traceur-ditaa` and add it as `origin`.
+2. Confirm that your [Central namespace](https://central.sonatype.com/publishing/namespaces)
+   covers `io.github.bric3.traceur`, then enable SNAPSHOTs on that namespace.
+3. Generate a [Central user token](https://central.sonatype.com/usertoken) and
+   configure these GitHub Actions repository secrets:
+
+| Secret                               | Value                                              |
+| ------------------------------------ | -------------------------------------------------- |
+| `MAVEN_CENTRAL_USERNAME`             | Username from the Central user token               |
+| `MAVEN_CENTRAL_TOKEN`                | Password from the Central user token               |
+| `ORG_GRADLE_PROJECT_SIGNINGKEY`      | ASCII-armoured private PGP signing key             |
+| `ORG_GRADLE_PROJECT_SIGNINGPASSWORD` | Passphrase for that key                            |
+
+Publish the corresponding public key to a
+[Central-supported keyserver](https://central.sonatype.org/publish/requirements/gpg/#distributing-your-public-key).
+Snapshots can publish without signing credentials. Prereleases and final releases
+require signing credentials. Central releases publish automatically after validation.
+Push `main` and the existing `v0.0.1` tag after configuring the secrets.
+
+For local publishing, supply the Gradle properties `mavenCentralUsername`,
+`mavenCentralPassword`, `signingKey` and `signingPassword` in your user
+`gradle.properties` or through `ORG_GRADLE_PROJECT_...` environment variables.
+
+```sh
+# Stage a development publication locally without uploading.
+./gradlew nmcpZipAggregation -Psnapshot=true
+
+# Publish a development snapshot.
+./gradlew publishAggregationToCentralSnapshots -Psnapshot=true
+
+# Publish an existing, clean release tag checked out at HEAD.
+./gradlew publishAggregationToCentralPortal -PreleaseTag=v0.0.2
+```
+
+Consumers need the [Central snapshot repository](https://central.sonatype.com/repository/maven-snapshots/)
+for development versions. Published prereleases and final releases resolve through
+`mavenCentral()`.
 
 ## Technical details
 
