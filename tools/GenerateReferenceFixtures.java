@@ -17,11 +17,11 @@ class GenerateReferenceFixtures {
   record Options(double scale, boolean shadows, boolean separation) {}
 
   public static void main(String[] args) throws Exception {
-    if (args.length < 2 || args.length > 3)
+    if (args.length < 2 || args.length > 4)
       throw new IllegalArgumentException(
-          "Supply the PlantUML 1.2026.8 and ditaa 0.11.0 JARs, optionally followed by a Java 11"
-              + " executable");
-    boolean java11 = args.length == 3;
+          "PLANTUML_JAR DITAA_JAR [JAVA11_EXECUTABLE|current [FIXTURE]]");
+    boolean java11 = args.length >= 3 && !args[2].equals("current");
+    String selected = args.length == 4 ? args[3] : null;
     String javaCommand =
         java11 ? args[2] : Path.of(System.getProperty("java.home"), "bin", "java").toString();
     Path oracle = Path.of(args[0]).toAbsolutePath();
@@ -42,6 +42,22 @@ class GenerateReferenceFixtures {
     Path work =
         Files.createDirectories(Path.of("build/reference-fixtures", java11 ? "java11" : "java25"));
     Path outputs = java11 ? Files.createDirectories(fixtures.resolve("java11")) : fixtures;
+    String metadata =
+        "# Project-authored inputs and reference renders use MPL-2.0.\n"
+            + "oracle.version=PlantUML 1.2026.8\noracle.sha256="
+            + hash
+            + "\n"
+            + "svg.version=ditaa 0.11.0\nsvg.sha256="
+            + svgHash
+            + "\n"
+            + "java="
+            + System.getProperty("java.runtime.version")
+            + "\n"
+            + "os="
+            + System.getProperty("os.name")
+            + " "
+            + System.getProperty("os.arch")
+            + "\n";
     if (java11) {
       Process version =
           new ProcessBuilder(javaCommand, "-version").redirectErrorStream(true).start();
@@ -50,19 +66,27 @@ class GenerateReferenceFixtures {
               version.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
       if (version.waitFor() != 0 || !actualVersion.contains("version \"11."))
         throw new IllegalArgumentException("Expected a Java 11 executable");
-      Files.writeString(
-          outputs.resolve("reference.properties"),
+      metadata =
           "java="
               + actualVersion.lines().findFirst().orElseThrow()
               + "\nplantuml.sha256="
               + hash
-              + "\n");
+              + "\n";
     }
     List<Path> inputs;
     try (var files = Files.list(fixtures)) {
       inputs = files.filter(p -> p.toString().endsWith(".ditaa")).sorted().toList();
     }
     if (inputs.isEmpty()) throw new IllegalArgumentException("No authored fixtures found");
+    if (selected != null) {
+      if (inputs.stream()
+          .noneMatch(input -> input.getFileName().toString().equals(selected + ".ditaa")))
+        throw new IllegalArgumentException("No authored fixture named " + selected);
+      Path provenance = outputs.resolve("reference.properties");
+      if (!Files.isRegularFile(provenance) || !Files.readString(provenance).equals(metadata))
+        throw new IllegalArgumentException(
+            "Regenerate all fixtures when the reference environment changes");
+    }
     List<Options> options = new ArrayList<>();
     for (double scale : new double[] {1, .7, 2}) {
       for (boolean shadows : new boolean[] {true, false}) {
@@ -71,6 +95,7 @@ class GenerateReferenceFixtures {
       }
     }
     List<String> cases = new ArrayList<>();
+    int generated = 0;
     cases.add("name\tvariant\tscale\tshadows\tseparation");
     try (var executor = Executors.newFixedThreadPool(4)) {
       List<java.util.concurrent.Future<?>> jobs = new ArrayList<>();
@@ -89,6 +114,8 @@ class GenerateReferenceFixtures {
                   + settings.shadows
                   + "\t"
                   + settings.separation);
+          if (selected != null && !name.equals(selected)) continue;
+          generated++;
           jobs.add(
               executor.submit(
                   () -> {
@@ -170,29 +197,13 @@ class GenerateReferenceFixtures {
       }
       for (var job : jobs) job.get();
     }
+    Files.writeString(outputs.resolve("reference.properties"), metadata);
     if (java11) {
-      System.out.println("Generated " + (cases.size() - 1) + " Java 11 PNG references");
+      System.out.println("Generated " + generated + " Java 11 PNG references");
       return;
     }
     Files.write(fixtures.resolve("cases.tsv"), cases);
-    Files.writeString(
-        fixtures.resolve("reference.properties"),
-        "# Project-authored inputs and reference renders use MPL-2.0.\n"
-            + "oracle.version=PlantUML 1.2026.8\noracle.sha256="
-            + hash
-            + "\n"
-            + "svg.version=ditaa 0.11.0\nsvg.sha256="
-            + svgHash
-            + "\n"
-            + "java="
-            + System.getProperty("java.runtime.version")
-            + "\n"
-            + "os="
-            + System.getProperty("os.name")
-            + " "
-            + System.getProperty("os.arch")
-            + "\n");
     System.out.println(
-        "Generated " + (cases.size() - 1) + " PNG and SVG reference pairs from authored fixtures");
+        "Generated " + generated + " PNG and SVG reference pairs from authored fixtures");
   }
 }

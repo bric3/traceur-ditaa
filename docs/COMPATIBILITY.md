@@ -36,6 +36,13 @@ jbang tools/GenerateReferenceFixtures.java /path/to/plantuml-1.2026.8.jar /path/
 Java2D rasterisation differs between JDK versions. Java 11 tests use reference
 PNGs generated on Java 11; Java 25 tests use references generated on Java 25.
 The generator checks both reference binary checksums before writing fixtures.
+To regenerate one fixture, append its name after `current` or the Java 11
+executable. The recorded environment must match; otherwise regenerate the full
+matrix first.
+
+```sh
+jbang tools/GenerateReferenceFixtures.java /path/to/plantuml-1.2026.8.jar /path/to/ditaa-0.11.0.jar current box
+```
 
 The [manifest](../corpus/manifest.tsv) pins 240 unique inputs with repository,
 revision, extraction location, SHA-256, and unresolved licence markers. Recreate
