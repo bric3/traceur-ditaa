@@ -191,14 +191,16 @@ public final class CorpusComparison {
     try {
       String text = Files.readString(input);
       hash = sha256(text.getBytes(StandardCharsets.UTF_8));
-      String flags = variant == 1 ? " -S" : variant == 2 ? " -E" : variant == 3 ? " scale=0.7" : "";
-      Path wrapped = dir.resolve("reference.puml"), raw = dir.resolve("input.ditaa");
-      Files.writeString(wrapped, "@startditaa" + flags + "\n" + text + "\n@endditaa\n");
+      Path raw = dir.resolve("input.ditaa");
       Files.writeString(raw, text);
       RenderOptions options = new RenderOptions(variant == 3 ? .7 : 1, variant != 1, variant != 2);
       Path reference = dir.resolve("reference.png"), actual = dir.resolve("actual.png");
       Path marker = dir.resolve("reference-key.txt");
-      String key = sha256((environment + hash + variant + format).getBytes(StandardCharsets.UTF_8));
+      String entryPoint = format == OutputFormat.PNG ? "raw-input-api-v1" : "";
+      String key =
+          sha256(
+              (environment + hash + variant + format + entryPoint)
+                  .getBytes(StandardCharsets.UTF_8));
       boolean cached =
           Files.isRegularFile(marker)
               && Files.isRegularFile(reference)
@@ -210,12 +212,16 @@ public final class CorpusComparison {
                 List.of(
                     javaCommand(),
                     "-Djava.awt.headless=true",
-                    "-jar",
-                    oracle.toString(),
-                    "-nometadata",
-                    "-pipe"),
-                wrapped,
-                reference,
+                    "-cp",
+                    System.getProperty("java.class.path") + java.io.File.pathSeparator + oracle,
+                    OraclePngProcess.class.getName(),
+                    raw.toString(),
+                    reference.toString(),
+                    Double.toString(options.scale()),
+                    Boolean.toString(options.shadows()),
+                    Boolean.toString(options.separation())),
+                null,
+                dir.resolve("oracle-stdout.log"),
                 dir.resolve("oracle.log"));
       } else {
         Path referenceSvg = dir.resolve("reference.svg");

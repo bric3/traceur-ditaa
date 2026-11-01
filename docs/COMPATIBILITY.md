@@ -50,6 +50,8 @@ jbang tools/FetchPinnedCorpus.java corpus/manifest.tsv /tmp/traceur-ditaa-corpus
 ```
 
 Install `rsvg-convert`, or supply `-Prasterizer=/path/to/rsvg-convert`.
+The PNG reference runs through its public raw-text API in an isolated JVM.
+Both renderers receive the same whitespace; PlantUML preprocessing is excluded.
 PNG comparisons require identical dimensions and decoded RGBA pixels. Both SVGs
 are rasterised by the same renderer before comparison; the replacement SVG must
 also be valid XML containing vector content. Pin the OS, JDK, fonts, and rasterizer
