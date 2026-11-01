@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       checks: write
@@ -43,7 +43,7 @@ jobs:
           java-version: '25'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v5
         with:
           validate-wrappers: true
 
@@ -69,7 +69,7 @@ jobs:
 
       - name: Publish test report
         if: always()
-        uses: mikepenz/action-junit-report@v5
+        uses: mikepenz/action-junit-report@v6
         with:
           report_paths: 'build/test-results/**/TEST-*.xml'
           check_name: Test Results
@@ -91,12 +91,12 @@ jobs:
   release:
     needs: build
     if: github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
       - name: Download JARs from this build
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: traceur-ditaa-jars
           path: artifacts
