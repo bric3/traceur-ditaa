@@ -70,6 +70,8 @@ Development builds write the calculated version to `build/semver/version.txt`.
 [CI](.github/workflows/ci.yml) builds and tests pull requests and pushes to `main`.
 Successful `main` builds publish snapshots and update one draft named
 "Development preview", with tag `development-preview` and the tested JARs.
+Both publishing workflows require all 1,920 corpus comparisons to match exactly.
+The current compatibility failures block snapshot and release publication in CI.
 
 To release, open GitHub's **Releases > Draft a new release**, select the target
 commit and enter `v0.0.2-rc.1` for a prerelease or `v0.0.2` for the final release.

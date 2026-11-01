@@ -83,4 +83,5 @@ environment details are written to `build/cold-start/`.
 
 Run without competing builds. Peak RSS uses `/usr/bin/time` on macOS and Linux;
 macOS sandbox restrictions can prevent access to its resource counters.
-Corpus and benchmark tasks are opt-in and run separately from CI's build checks.
+CI and release workflows run the corpus comparison before publishing. The current
+mismatches fail that gate. Cold-start benchmarks remain opt-in.
