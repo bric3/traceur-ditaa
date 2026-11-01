@@ -17,6 +17,16 @@ class TextSyntaxTest {
   }
 
   @Test
+  void touchingRoundedBoxesKeepSeparateInteriors() {
+    var drawing =
+        DiagramParser.parse("/----\\/----\\\n|    ||    |\n\\----/\\----/", RenderOptions.DEFAULT);
+    assertEquals(2, drawing.figures.size());
+    assertTrue(drawing.figures.stream().allMatch(figure -> figure.shadow));
+    assertEquals(25, drawing.figures.get(0).path.getBounds2D().getMinX());
+    assertEquals(85, drawing.figures.get(1).path.getBounds2D().getMinX());
+  }
+
+  @Test
   void markupOutsideShapesDisappearsWithoutSplittingText() {
     assertEquals(List.of("A B", "text"), labels("A*B    cRED {s} text"));
     assertEquals(List.of("A B A B A B"), labels("A-B A:B A|B"));
@@ -57,6 +67,7 @@ class TextSyntaxTest {
     var drawing = DiagramParser.parse("WWWWWW", RenderOptions.DEFAULT);
     Drawing.Label label = drawing.labels.get(0);
     assertTrue(label.font.getSize2D() < drawing.font.getSize2D());
+    assertEquals(Math.floor(label.font.getSize2D()), label.font.getSize2D());
     assertTrue(
         label
                 .font

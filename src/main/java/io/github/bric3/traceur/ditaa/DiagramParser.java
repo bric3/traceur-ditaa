@@ -102,6 +102,20 @@ final class DiagramParser {
   }
 
   private int directions(int x, int y) {
+    char c = at(x, y);
+    if (c != '/' && c != '\\') return basicDirections(x, y);
+    int neighbours = 0;
+    for (int direction = 0; direction < 4; direction++)
+      if ((basicDirections(x + DX[direction], y + DY[direction]) & (1 << ((direction + 2) % 4)))
+          != 0) neighbours |= 1 << direction;
+    int first = c == '/' ? 3 : 6;
+    int second = c == '/' ? 12 : 9;
+    if ((neighbours & first) == first) return first;
+    if ((neighbours & second) == second) return second;
+    return 0;
+  }
+
+  private int basicDirections(int x, int y) {
     switch (at(x, y)) {
       case '-':
       case '=':

@@ -74,7 +74,7 @@ final class Drawing {
       Font fitted = baseFont;
       while (fitted.getSize2D() > .5
           && fitted.getStringBounds(text, FONT_CONTEXT).getWidth() > available) {
-        fitted = fitted.deriveFont(fitted.getSize2D() - .5f);
+        fitted = fitted.deriveFont(Math.max(.5f, (float) Math.ceil(fitted.getSize2D()) - 1));
       }
       this.font = fitted;
       double actualWidth = font.getStringBounds(text, FONT_CONTEXT).getWidth();

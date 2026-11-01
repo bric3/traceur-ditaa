@@ -5,11 +5,11 @@ the exact-render and strict cold-start gates fail.
 
 ## Build
 
-All 1,080 tests pass across Java 11 and Java 25. The focused suite contains 540
+All 1,084 tests pass across Java 11 and Java 25. The focused suite contains 542
 tests per JDK, including 480 exact PNG/SVG
 comparisons of project-authored fixtures. It covers encoding, shapes, connectors,
 options, text, allocation limits, unavailable PNG encoders, write failures and
-concurrent rendering. Renderer coverage is 99.3% of lines and 97.7% of branches,
+concurrent rendering. Renderer coverage is 99.3% of lines and 97.8% of branches,
 with no exclusions. `check` requires at least 99% line and 97% branch coverage.
 Library classes target bytecode version 55 and depend only on
 `java.base` and `java.desktop`. Release JARs include the MPL-2.0 licence.
@@ -22,9 +22,9 @@ All 1,920 cases completed across both formats and four option variants:
 
 | Format | Exact matches | Differences |
 | ------ | ------------- | ----------- |
-| PNG    | 364           | 596         |
-| SVG    | 297           | 663         |
-| Total  | 661           | 1,259       |
+| PNG    | 388           | 572         |
+| SVG    | 303           | 657         |
+| Total  | 691           | 1,229       |
 
 This improves the initial 76 exact matches; complete compatibility remains unmet.
 Complex boundaries, text layout, dashed curves and combined features still differ.
