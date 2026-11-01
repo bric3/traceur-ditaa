@@ -8,8 +8,8 @@ PNG and vector SVG. It targets Java 11 and has no third-party runtime dependenci
 
 Maven coordinates: `io.github.bric3.traceur:traceur-ditaa`. Publication is pending.
 
-Version 0.0.1 is experimental. Exact rendering compatibility is incomplete:
-76 of 1,920 comparison cases match the reference. See the
+Complete rendering compatibility is required before release. The current renderer
+matches 653 of 1,920 corpus comparisons exactly. See the
 [validation snapshot](docs/VALIDATION.md) for the measured gaps.
 
 ## Usage
@@ -40,14 +40,16 @@ public CLI or binary compatibility with ditaa's Java classes.
 
 ## Build
 
-Build from a Git checkout with tags and Java 11 and Java 25 toolchains installed:
+Build from a Git checkout with tags, Java 11 and Java 25 toolchains, and
+`rsvg-convert` installed:
 
 ```sh
 ./gradlew build
 ```
 
 Gradle runs on Java 25 and compiles with `--release 11`. `build` runs the tests on
-both Java versions and writes the library, source, and Javadoc JARs to
+both Java versions, enforces at least 99% line and 97% branch coverage, and writes
+the library, source, and Javadoc JARs to
 `build/libs/`. Set `org.gradle.java.installations.paths` if Gradle cannot discover
 the installed JDKs.
 
@@ -93,10 +95,10 @@ Before enabling publishing:
 
 | Secret                               | Value                                              |
 | ------------------------------------ | -------------------------------------------------- |
-| `MAVEN_CENTRAL_USERNAME`             | Username from the Central user token               |
-| `MAVEN_CENTRAL_TOKEN`                | Password from the Central user token               |
-| `ORG_GRADLE_PROJECT_SIGNINGKEY`      | ASCII-armoured private PGP signing key             |
-| `ORG_GRADLE_PROJECT_SIGNINGPASSWORD` | Passphrase for that key                            |
+| `MAVEN_CENTRAL_USERNAME`              | Username from the Central user token                |
+| `MAVEN_CENTRAL_TOKEN`                 | Password from the Central user token                |
+| `ORG_GRADLE_PROJECT_SIGNINGKEY`       | ASCII-armoured private PGP signing key              |
+| `ORG_GRADLE_PROJECT_SIGNINGPASSWORD`  | Passphrase for that key                             |
 
 Publish the corresponding public key to a
 [Central-supported keyserver](https://central.sonatype.org/publish/requirements/gpg/#distributing-your-public-key).

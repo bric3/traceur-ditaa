@@ -11,8 +11,13 @@ Project-authored probes measured dimensions, scaling, paths, colours, fonts, and
 shadows. Build version mapping follows MPL-2.0 code from
 [jardiff](https://github.com/bric3/jardiff/blob/0c538e90a0c48571ce84ecf58d819898e5e9f1f4/settings.gradle.kts).
 
-The fixtures in `src/test/resources/corpus` were authored for Traceur Ditaa and use
-MPL-2.0. The versioned corpus manifest contains metadata only. Third-party inputs
+The fixtures in `src/test/resources/corpus` and `src/test/resources/compatibility`
+were authored for Traceur Ditaa and use MPL-2.0, including the generated reference
+images. `GenerateReferenceFixtures.java` records the reference checksums and JDK
+versions. Public binary API probes and JDK drawing-call arguments supplement the
+rendered output measurements; implementation sources and decompiled code remain excluded.
+
+The versioned corpus manifest contains metadata only. Third-party inputs
 stay in an external cache; comparison copies and images go under ignored `build/`.
 
 `EXTERNAL_ONLY_CHECK_UPSTREAM_TERMS` records unresolved rights. Before committing

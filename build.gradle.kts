@@ -2,6 +2,7 @@
 plugins {
     `java-library`
     `maven-publish`
+    jacoco
 }
 
 group = "io.github.bric3.traceur"
@@ -28,6 +29,37 @@ dependencies {
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     systemProperty("java.awt.headless", "true")
+    systemProperty("rasterizer", providers.gradleProperty("rasterizer").getOrElse("rsvg-convert"))
+}
+
+jacoco {
+    toolVersion = "0.8.14"
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.withType<Test>())
+    executionData(layout.buildDirectory.file("jacoco/test.exec"), layout.buildDirectory.file("jacoco/testJava11.exec"))
+    reports {
+        xml.required = true
+        csv.required = true
+    }
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.withType<Test>())
+    executionData(layout.buildDirectory.file("jacoco/test.exec"), layout.buildDirectory.file("jacoco/testJava11.exec"))
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                minimum = "0.99".toBigDecimal()
+            }
+            limit {
+                counter = "BRANCH"
+                minimum = "0.97".toBigDecimal()
+            }
+        }
+    }
 }
 
 tasks.withType<Jar>().configureEach {
@@ -43,7 +75,8 @@ tasks.register<Test>("testJava11") {
 }
 
 tasks.check {
-    dependsOn("testJava11", gradle.includedBuild("build-logic").task(":check"))
+    dependsOn("testJava11", tasks.jacocoTestReport, tasks.jacocoTestCoverageVerification,
+        gradle.includedBuild("build-logic").task(":check"))
 }
 
 val tools by sourceSets.creating

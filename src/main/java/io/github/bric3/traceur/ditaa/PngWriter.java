@@ -6,6 +6,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.ConvolveOp;
 import java.awt.image.Kernel;
@@ -23,12 +24,15 @@ final class PngWriter {
       try {
         shadow.setColor(Color.WHITE);
         shadow.fillRect(0, 0, drawing.width, drawing.height);
-        shadow.scale(drawing.scale, drawing.scaleY);
+        shadow.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         shadow.setColor(new Color(150, 150, 150));
         for (Drawing.Figure figure : drawing.figures)
           if (figure.shadow) {
-            shadow.fill(
-                AffineTransform.getTranslateInstance(3, 3).createTransformedShape(figure.path));
+            Path2D.Float shifted = new Path2D.Float(figure.path);
+            // The reference displaces shadows by this fraction of a character cell.
+            double offset = drawing.cellWidth / 3.333;
+            shifted.transform(AffineTransform.getTranslateInstance(offset, offset));
+            shadow.fill(shifted);
           }
       } finally {
         shadow.dispose();
@@ -44,7 +48,6 @@ final class PngWriter {
         graphics.setColor(Color.WHITE);
         graphics.fillRect(0, 0, drawing.width, drawing.height);
       }
-      graphics.scale(drawing.scale, drawing.scaleY);
       graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
       graphics.setRenderingHint(
           RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -52,14 +55,22 @@ final class PngWriter {
         graphics.setStroke(
             figure.dashed
                 ? new BasicStroke(
-                    1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 10, new float[] {5, 5}, 0)
-                : new BasicStroke(1, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-        if (figure.fill != null) {
+                    (float) drawing.scale,
+                    BasicStroke.CAP_BUTT,
+                    BasicStroke.JOIN_ROUND,
+                    10,
+                    new float[] {
+                      Math.max(1, (int) (5 * drawing.scale)), Math.max(1, (int) (5 * drawing.scale))
+                    },
+                    0)
+                : new BasicStroke(
+                    (float) drawing.scale, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        if (figure.fill != null && !figure.dashed) {
           graphics.setColor(figure.fill);
           graphics.fill(figure.path);
         }
         graphics.setColor(Color.BLACK);
-        if (!Color.BLACK.equals(figure.fill)) graphics.draw(figure.path);
+        if (figure.outline) graphics.draw(figure.path);
       }
       for (Drawing.Label label : drawing.labels) {
         graphics.setFont(label.font);

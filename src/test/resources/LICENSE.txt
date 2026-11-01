@@ -1,3 +1,4 @@
-The diagram fixtures in corpus/ were authored for Traceur Ditaa.
+The diagram fixtures and reference images in corpus/ and compatibility/ were
+authored for Traceur Ditaa or generated from those authored diagrams.
 SPDX-License-Identifier: MPL-2.0
 See the project root LICENSE for the licence text.

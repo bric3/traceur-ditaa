@@ -17,6 +17,26 @@ input, grids above 250,000 cells, dimensions above 32,768 pixels, and images abo
 
 ## Corpus comparison
 
+The normal build runs 540 tests on each JDK, including 480 exact image comparisons
+from 20 project-authored diagrams, three scales and all shadow/separation settings.
+PNG assertions compare every decoded pixel. SVG assertions rasterise both vectors
+with `rsvg-convert` before comparing every pixel. These focused fixtures cover
+individual features; the external corpus below checks their combinations.
+
+`check` enforces 99% line coverage and 97% branch coverage of the whole renderer,
+without exclusions. HTML and XML reports are written to `build/reports/jacoco/test/`.
+
+Regenerate the authored reference images with Java 25 and JBang:
+
+```sh
+jbang tools/GenerateReferenceFixtures.java /path/to/plantuml-1.2026.8.jar /path/to/ditaa-0.11.0.jar
+jbang tools/GenerateReferenceFixtures.java /path/to/plantuml-1.2026.8.jar /path/to/ditaa-0.11.0.jar /path/to/java11/bin/java
+```
+
+Java2D rasterisation differs between JDK versions. Java 11 tests use reference
+PNGs generated on Java 11; Java 25 tests use references generated on Java 25.
+The generator checks both reference binary checksums before writing fixtures.
+
 The [manifest](../corpus/manifest.tsv) pins 240 unique inputs with repository,
 revision, extraction location, SHA-256, and unresolved licence markers. Recreate
 the external cache with Java 25 and JBang:

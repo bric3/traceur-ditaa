@@ -15,8 +15,6 @@ import java.util.concurrent.Executors;
 import javax.imageio.ImageIO;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 class DitaaRendererTest {
   private final DitaaRenderer renderer = new DitaaRenderer();
@@ -38,13 +36,14 @@ class DitaaRendererTest {
   }
 
   @Test
-  void svgContainsVectorsAndEscapedText() throws Exception {
-    byte[] svg = render("<A & B> 'quoted'", OutputFormat.SVG);
+  void svgEscapesTextWithoutEmbeddingRasterImages() throws Exception {
+    byte[] svg = render("R&D \"quoted\" 'apostrophe'", OutputFormat.SVG);
     var factory = DocumentBuilderFactory.newInstance();
     factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
     var document = factory.newDocumentBuilder().parse(new ByteArrayInputStream(svg));
     assertEquals(
-        "<A & B> 'quoted'", document.getElementsByTagName("text").item(0).getTextContent());
+        "R&D \"quoted\" 'apostrophe'",
+        document.getElementsByTagName("text").item(0).getTextContent());
     assertEquals(0, document.getElementsByTagName("image").getLength());
   }
 
@@ -53,21 +52,10 @@ class DitaaRendererTest {
     var drawing =
         DiagramParser.parse("+-------+\n| cRED  |\n| {s} X |\n+-------+", RenderOptions.DEFAULT);
     assertTrue(drawing.figures.stream().anyMatch(f -> new java.awt.Color(0xee3322).equals(f.fill)));
-    assertEquals(List.of("X"), List.of(drawing.labels.get(0).text));
+    assertEquals(List.of("X "), List.of(drawing.labels.get(0).text));
     assertTrue(
         new String(render(BOX, OutputFormat.SVG), java.nio.charset.StandardCharsets.UTF_8)
             .contains("<path"));
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"d", "s", "io", "o", "mo", "c", "tr"})
-  void allTagsRender(String tag) throws Exception {
-    String text =
-        "+-------+\n|"
-            + String.format(Locale.ROOT, "%-7s", " {" + tag + "}")
-            + "|\n|       |\n+-------+";
-    assertTrue(render(text, OutputFormat.PNG).length > 100);
-    assertTrue(DiagramParser.parse(text, RenderOptions.DEFAULT).labels.isEmpty());
   }
 
   @Test
@@ -173,12 +161,27 @@ class DitaaRendererTest {
 
   @Test
   void renderingIsConcurrentAndDeterministic() throws Exception {
-    byte[] expected = render(BOX, OutputFormat.PNG);
+    List<byte[]> expected = new ArrayList<>();
     var executor = Executors.newFixedThreadPool(4);
     try {
       List<Callable<byte[]>> tasks = new ArrayList<>();
-      for (int i = 0; i < 20; i++) tasks.add(() -> render(BOX, OutputFormat.PNG));
-      for (var result : executor.invokeAll(tasks)) assertArrayEquals(expected, result.get());
+      for (int i = 0; i < 20; i++) {
+        String text = i % 2 == 0 ? BOX : "*===>\n|\nv";
+        OutputFormat format = OutputFormat.values()[i % OutputFormat.values().length];
+        RenderOptions options = new RenderOptions(i % 3 == 0 ? .7 : 1, i % 4 == 0, i % 3 == 0);
+        var output = new ByteArrayOutputStream();
+        renderer.render(text, options, format, output);
+        expected.add(output.toByteArray());
+        tasks.add(
+            () -> {
+              var concurrent = new ByteArrayOutputStream();
+              renderer.render(text, options, format, concurrent);
+              return concurrent.toByteArray();
+            });
+      }
+      var results = executor.invokeAll(tasks);
+      for (int i = 0; i < results.size(); i++)
+        assertArrayEquals(expected.get(i), results.get(i).get());
     } finally {
       executor.shutdownNow();
     }
@@ -193,7 +196,9 @@ class DitaaRendererTest {
       Locale.setDefault(Locale.FRANCE);
       var output = new ByteArrayOutputStream();
       renderer.render(BOX, new RenderOptions(.7, true, true), OutputFormat.SVG, output);
-      assertTrue(output.toString("UTF-8").contains("scale(0.7 0.6428571428571429)"));
+      var document = SvgEncodingTest.parse(output.toByteArray());
+      var group = (org.w3c.dom.Element) document.getElementsByTagNameNS("*", "g").item(0);
+      assertEquals(.7, Double.parseDouble(group.getAttribute("stroke-width")));
     } finally {
       Locale.setDefault(before);
       Locale.setDefault(Locale.Category.DISPLAY, display);

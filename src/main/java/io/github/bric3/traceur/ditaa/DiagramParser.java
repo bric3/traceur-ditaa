@@ -9,6 +9,7 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -20,7 +21,7 @@ final class DiagramParser {
   private static final int MAX_CELLS = 250_000;
   private static final long MAX_PIXELS = 25_000_000;
   private static final Pattern MARKUP =
-      Pattern.compile("c([0-9a-fA-F]{3}|RED|BLU|GRE|PNK|BLK|YEL)|\\{(d|s|io|o|mo|c|tr)\\}");
+      Pattern.compile("c([0-9A-F]{3}|RED|BLU|GRE|PNK|BLK|YEL)|\\{(d|s|io|o|mo|c|tr)\\}");
   private static final int[] DX = {1, 0, -1, 0};
   private static final int[] DY = {0, 1, 0, -1};
 
@@ -30,11 +31,15 @@ final class DiagramParser {
   private final int[][] links;
   private final boolean[][] consumed;
   private final RenderOptions options;
+  private final int cellWidth;
+  private final int cellHeight;
 
   private DiagramParser(List<String> lines, int width, RenderOptions options) {
     this.width = width;
     this.height = lines.size();
     this.options = options;
+    this.cellWidth = (int) (10 * options.scale());
+    this.cellHeight = (int) (14 * options.scale());
     grid = new char[height][width];
     links = new int[height][width];
     consumed = new boolean[height][width];
@@ -84,8 +89,7 @@ final class DiagramParser {
     if (pixelWidth > 32768
         || pixelHeight > 32768
         || pixelWidth * pixelHeight > MAX_PIXELS
-        || pixelWidth < 1
-        || pixelHeight < 1) {
+        || pixelWidth < 1) {
       throw new IllegalArgumentException("Rendered dimensions exceed image limits");
     }
     Drawing drawing = new Drawing((int) pixelWidth, (int) pixelHeight, options);
@@ -117,13 +121,27 @@ final class DiagramParser {
       case '^':
         return 2;
       case 'v':
-        return 8;
+      case 'V':
+        return Character.isLetterOrDigit(at(x - 1, y)) || Character.isLetterOrDigit(at(x + 1, y))
+            ? 0
+            : 8;
       default:
         return 0;
     }
   }
 
   private void build(Drawing drawing) {
+    for (int y = 0; y < height; y++)
+      for (int x = 0; x + 2 < width; x++) {
+        char marker = at(x, y);
+        if ((marker == 'o' || marker == '*')
+            && (x == 0 || at(x - 1, y) == ' ')
+            && at(x + 1, y) == ' '
+            && at(x + 2, y) != ' ') {
+          grid[y][x] = ' ';
+          grid[y][x + 1] = '\u2022';
+        }
+      }
     for (int y = 0; y < height; y++)
       for (int x = 0; x < width; x++) {
         for (int d = 0; d < 4; d++) {
@@ -192,18 +210,22 @@ final class DiagramParser {
     for (int y = 0; y < height; y++) {
       Matcher matcher = MARKUP.matcher(new String(grid[y]));
       while (matcher.find()) {
+        Arrays.fill(consumed[y], matcher.start(), matcher.end(), true);
         Region owner = null;
         for (Region region : regions)
           if (region.gridPath.contains(matcher.start(), y)) owner = region;
         if (owner == null) continue;
         if (matcher.group(1) != null) owner.colour = colour(matcher.group(1));
         else owner.tag = matcher.group(2);
-        Arrays.fill(consumed[y], matcher.start(), matcher.end(), true);
       }
     }
     for (Region region : regions) {
       region.shape = shape(region, sharedEdges);
-      drawing.figures.add(new Drawing.Figure(region.shape, region.colour, region.dashed, true));
+    }
+    regions.sort(Comparator.comparingDouble((Region r) -> r.renderArea).reversed());
+    for (Region region : regions) {
+      drawing.figures.add(
+          new Drawing.Figure(region.shape, region.colour, region.dashed, !region.dashed, true));
     }
 
     // Draw each remaining connector as a continuous path so dash phase spans cells.
@@ -215,38 +237,83 @@ final class DiagramParser {
     for (int y = 0; y < height; y++)
       for (int x = 0; x < width; x++) {
         connectors(x, y, drawn, drawing);
-        if (links[y][x] == 0) continue;
-        consumed[y][x] = true;
         char c = at(x, y);
-        if ("<>^v".indexOf(c) >= 0) {
+        boolean arrowCharacter =
+            "<>^".indexOf(c) >= 0 || (c == 'v' || c == 'V') && links[y][x] != 0;
+        boolean loneLine = "-=|:".indexOf(c) >= 0;
+        if (links[y][x] == 0 && !arrowCharacter && !loneLine && c != '*') continue;
+        consumed[y][x] = true;
+        if (arrowCharacter) {
           double cx = cx(x), cy = cy(y);
-          int d = " >v<^".indexOf(c) - 1;
+          int d = " >v<^".indexOf(Character.toLowerCase(c)) - 1;
           Path2D.Double arrow = new Path2D.Double();
-          arrow.moveTo(cx + DX[d] * 5, cy + DY[d] * 7);
-          arrow.lineTo(cx - DX[d] * 5 + DY[d] * 5, cy - DY[d] * 7 - DX[d] * 7);
-          arrow.lineTo(cx - DX[d] * 5 - DY[d] * 5, cy - DY[d] * 7 + DX[d] * 7);
+          double left = (x + 2) * cellWidth, top = (y + 2) * cellHeight;
+          double right = left + cellWidth, bottom = top + cellHeight;
+          switch (d) {
+            case 0:
+              arrow.moveTo(right, cy);
+              arrow.lineTo(left, top);
+              arrow.lineTo(left, bottom);
+              break;
+            case 1:
+              arrow.moveTo(cx, bottom);
+              arrow.lineTo(right, top);
+              arrow.lineTo(left, top);
+              break;
+            case 2:
+              arrow.moveTo(left, cy);
+              arrow.lineTo(right, bottom);
+              arrow.lineTo(right, top);
+              break;
+            default:
+              arrow.moveTo(cx, top);
+              arrow.lineTo(left, bottom);
+              arrow.lineTo(right, bottom);
+              break;
+          }
           arrow.closePath();
-          drawing.figures.add(new Drawing.Figure(arrow, Color.BLACK, false, false));
+          drawing.figures.add(new Drawing.Figure(arrow, Color.BLACK, false, false, false));
         } else if (c == '*') {
-          drawing.figures.add(
-              new Drawing.Figure(
-                  new Ellipse2D.Double(cx(x) - 3, cy(y) - 3, 6, 6), Color.WHITE, false, false));
+          if (links[y][x] != 0) {
+            drawing.figures.add(
+                new Drawing.Figure(
+                    new Ellipse2D.Double(
+                        cx(x) - cellWidth * .35,
+                        cy(y) - cellWidth * .35,
+                        cellWidth * .7,
+                        cellWidth * .7),
+                    Color.WHITE,
+                    false,
+                    false,
+                    true));
+          }
+        } else if (links[y][x] == 0 && (c == '-' || c == '|')) {
+          Path2D.Double path = new Path2D.Double();
+          if (c == '-') {
+            path.moveTo((x + 2) * cellWidth, cy(y));
+            path.lineTo((x + 3) * cellWidth - 1, cy(y));
+          } else {
+            path.moveTo(cx(x), (y + 2) * cellHeight);
+            path.lineTo(cx(x), (y + 3) * cellHeight - 1);
+          }
+          drawing.figures.add(new Drawing.Figure(path, null, false, false, true));
         }
       }
 
     for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) if (consumed[y][x]) grid[y][x] = ' ';
+    }
+    for (int y = 0; y < height; y++) {
       int x = 0;
       while (x < width) {
-        if (consumed[y][x] || at(x, y) == ' ') {
+        if (at(x, y) == ' ') {
           x++;
           continue;
         }
         int start = x++;
-        while (x < width && !consumed[y][x] && !(at(x, y) == ' ' && at(x + 1, y) == ' ')) x++;
+        while (x < width && !(at(x, y) == ' ' && at(x + 1, y) == ' ')) x++;
         String label = new String(grid[y], start, x - start).stripTrailing();
-        if (label.isEmpty()) continue;
-        if (start > 0 && at(start - 1, y) == ' ' && label.startsWith("o "))
-          label = "\u2022" + label.substring(1);
+        if (label.length() == 1 && at(x, y) == ' ') label += " ";
         Color colour = Color.BLACK;
         for (Region region : regions)
           if (region.gridPath.contains(start, y)) {
@@ -256,9 +323,21 @@ final class DiagramParser {
                     ? Color.WHITE
                     : Color.BLACK;
           }
-        drawing.labels.add(new Drawing.Label(label, (start + 2) * 10, (y + 2) * 14 + 12, colour));
+        drawing.labels.add(
+            new Drawing.Label(
+                label,
+                (start + 2) * cellWidth,
+                (y + 2.5) * cellHeight,
+                colour,
+                cellWidth,
+                drawing.font,
+                textStartsAt(start, y - 1) || textStartsAt(start, y + 1)));
       }
     }
+  }
+
+  private boolean textStartsAt(int x, int y) {
+    return y >= 0 && y < height && at(x, y) != ' ' && (x == 0 || at(x - 1, y) == ' ');
   }
 
   private void connectors(int x, int y, Set<Long> drawn, Drawing drawing) {
@@ -266,17 +345,15 @@ final class DiagramParser {
       if ((links[y][x] & (1 << direction)) == 0) continue;
       int nx = x + DX[direction], ny = y + DY[direction];
       if (drawn.contains(edge(x, y, nx, ny))) continue;
-      Path2D.Double path = new Path2D.Double();
-      boolean tail = Integer.bitCount(links[y][x]) == 1 && "-=|:".indexOf(at(x, y)) >= 0;
-      path.moveTo(cx(x) - (tail ? DX[direction] * 5 : 0), cy(y) - (tail ? DY[direction] * 7 : 0));
+      List<Point2D.Double> points = new ArrayList<>();
+      points.add(new Point2D.Double(x, y));
       int px = x, py = y, d = direction;
       boolean dashed = at(px, py) == '=' || at(px, py) == ':';
       do {
         nx = px + DX[d];
         ny = py + DY[d];
         if (!drawn.add(edge(px, py, nx, ny))) break;
-        boolean end = Integer.bitCount(links[ny][nx]) == 1 && "-=|:".indexOf(at(nx, ny)) >= 0;
-        path.lineTo(cx(nx) + (end ? DX[d] * 5 : 0), cy(ny) + (end ? DY[d] * 7 : 0));
+        points.add(new Point2D.Double(nx, ny));
         dashed |= at(nx, ny) == '=' || at(nx, ny) == ':';
         if (Integer.bitCount(links[ny][nx]) != 2) break;
         int remaining = links[ny][nx] & ~(1 << ((d + 2) % 4));
@@ -284,7 +361,38 @@ final class DiagramParser {
         py = ny;
         d = Integer.numberOfTrailingZeros(remaining);
       } while (true);
-      drawing.figures.add(new Drawing.Figure(path, null, dashed, false));
+      if (Integer.bitCount(links[y][x]) == 1 && Integer.bitCount(links[ny][nx]) == 1) {
+        // The reference starts dashes at the first endpoint in its padded grid hash order.
+        int capacity = 16;
+        while (points.size() > capacity * .75) capacity *= 2;
+        int first = (((x + 2) << 16) | (y + 2));
+        int last = (((nx + 2) << 16) | (ny + 2));
+        if (((last ^ (last >>> 16)) & (capacity - 1)) < ((first ^ (first >>> 16)) & (capacity - 1)))
+          Collections.reverse(points);
+      }
+      Path2D.Double path = new Path2D.Double();
+      path.moveTo(cx(points.get(0).x), cy(points.get(0).y));
+      for (int i = 1; i < points.size() - 1; i++) {
+        Point2D.Double before = points.get(i - 1), point = points.get(i), after = points.get(i + 1);
+        if ((point.x - before.x) * (after.y - point.y)
+            == (point.y - before.y) * (after.x - point.x)) continue;
+        double pxCentre = cx(point.x), pyCentre = cy(point.y);
+        if (at((int) point.x, (int) point.y) == '/' || at((int) point.x, (int) point.y) == '\\') {
+          path.lineTo(
+              pxCentre + cellBoundaryOffset(before.x - point.x, cellWidth),
+              pyCentre + cellBoundaryOffset(before.y - point.y, cellHeight));
+          path.quadTo(
+              pxCentre,
+              pyCentre,
+              pxCentre + cellBoundaryOffset(after.x - point.x, cellWidth),
+              pyCentre + cellBoundaryOffset(after.y - point.y, cellHeight));
+        } else {
+          path.lineTo(pxCentre, pyCentre);
+        }
+      }
+      Point2D.Double end = points.get(points.size() - 1);
+      path.lineTo(cx(end.x), cy(end.y));
+      drawing.figures.add(new Drawing.Figure(path, null, dashed, false, true));
     }
   }
 
@@ -298,6 +406,8 @@ final class DiagramParser {
       if ((b.x - a.x) * (c.y - b.y) != (b.y - a.y) * (c.x - b.x)) corners.add(i);
     }
     Path2D.Double path = new Path2D.Double();
+    List<Point2D.Float> renderCorners = new ArrayList<>();
+    Collections.reverse(corners.subList(1, corners.size()));
     for (int i = 0; i < corners.size(); i++) {
       Point2D.Double previous = p.get(corners.get((i + corners.size() - 1) % corners.size()));
       int pointIndex = corners.get(i);
@@ -308,29 +418,51 @@ final class DiagramParser {
         Point2D.Double after = p.get((pointIndex + 1) % p.size());
         if (sharedEdges.contains(
             edge((int) before.x, (int) before.y, (int) point.x, (int) point.y))) {
-          x -= Math.signum(point.y - before.y) * 2;
-          y += Math.signum(point.x - before.x) * 2;
+          x -= Math.signum(point.y - before.y) * 2 * options.scale();
+          y += Math.signum(point.x - before.x) * 2 * options.scale();
         }
         if (sharedEdges.contains(
             edge((int) point.x, (int) point.y, (int) after.x, (int) after.y))) {
-          x -= Math.signum(after.y - point.y) * 2;
-          y += Math.signum(after.x - point.x) * 2;
+          x -= Math.signum(after.y - point.y) * 2 * options.scale();
+          y += Math.signum(after.x - point.x) * 2 * options.scale();
         }
       }
+      renderCorners.add(new Point2D.Float((float) x, (float) y));
+      x = (int) x;
+      y = (int) y;
       boolean rounded =
           at((int) point.x, (int) point.y) == '/' || at((int) point.x, (int) point.y) == '\\';
-      double r = rounded ? 5 : 0;
-      double ix = x + Math.signum(previous.x - point.x) * r,
-          iy = y + Math.signum(previous.y - point.y) * r;
+      double ix = x, iy = y;
+      if (rounded) {
+        ix =
+            previous.x == point.x
+                ? x
+                : cx(point.x) + cellBoundaryOffset(previous.x - point.x, cellWidth);
+        iy =
+            previous.y == point.y
+                ? y
+                : cy(point.y) + cellBoundaryOffset(previous.y - point.y, cellHeight);
+      }
       if (i == 0) path.moveTo(ix, iy);
       else path.lineTo(ix, iy);
       if (rounded)
         path.quadTo(
-            x, y, x + Math.signum(next.x - point.x) * r, y + Math.signum(next.y - point.y) * r);
+            x,
+            y,
+            next.x == point.x ? x : cx(point.x) + cellBoundaryOffset(next.x - point.x, cellWidth),
+            next.y == point.y ? y : cy(point.y) + cellBoundaryOffset(next.y - point.y, cellHeight));
     }
     path.closePath();
+    // Sort before integer path rounding; fractional shared edges can change equal-area ties.
+    double renderArea = 0;
+    for (int i = 0; i < renderCorners.size(); i++) {
+      Point2D.Float a = renderCorners.get(i), b = renderCorners.get((i + 1) % renderCorners.size());
+      renderArea += a.x * b.y - b.x * a.y;
+    }
+    region.renderArea = Math.abs(renderArea / 2);
     Rectangle2D bounds = path.getBounds2D();
     double x = bounds.getX(), y = bounds.getY(), w = bounds.getWidth(), h = bounds.getHeight();
+    double skew = cellWidth / 2.0;
     if (region.tag.isEmpty()) return path;
     if (region.tag.equals("o")) return new Ellipse2D.Double(x, y, w, h);
     path = new Path2D.Double();
@@ -342,37 +474,50 @@ final class DiagramParser {
         path.lineTo(x, y + h / 2);
         break;
       case "io":
-        path.moveTo(x + 5, y);
-        path.lineTo(x + w + 5, y);
-        path.lineTo(x + w - 5, y + h);
-        path.lineTo(x - 5, y + h);
+        path.moveTo(x + skew, y);
+        path.lineTo(x + w + skew, y);
+        path.lineTo(x + w - skew, y + h);
+        path.lineTo(x - skew, y + h);
         break;
       case "mo":
-        path.moveTo(x - 5, y);
-        path.lineTo(x + w + 5, y);
-        path.lineTo(x + w - 5, y + h);
-        path.lineTo(x + 5, y + h);
+        path.moveTo(x - skew, y);
+        path.lineTo(x + w + skew, y);
+        path.lineTo(x + w - skew, y + h);
+        path.lineTo(x + skew, y + h);
         break;
       case "tr":
-        path.moveTo(x + 5, y);
-        path.lineTo(x + w - 5, y);
-        path.lineTo(x + w + 5, y + h);
-        path.lineTo(x - 5, y + h);
+        path.moveTo(x + skew, y);
+        path.lineTo(x + w - skew, y);
+        path.lineTo(x + w + skew, y + h);
+        path.lineTo(x - skew, y + h);
         break;
       case "d":
         path.moveTo(x, y);
         path.lineTo(x + w, y);
         path.lineTo(x + w, y + h);
-        path.quadTo(x + w * 2 / 3, y + h - 5, x + w / 2, y + h);
-        path.quadTo(x + w / 3, y + h + 5, x, y + h);
+        path.quadTo(x + w / 2 + (int) (w / 6), y + h - cellHeight / 2, x + w / 2, y + h);
+        path.quadTo(x + w / 2 - (int) (w / 6), y + h + cellHeight / 2, x, y + h);
         break;
       case "s":
         path.moveTo(x, y);
-        path.curveTo(x + w / 6, y + 7, x + w * 5 / 6, y + 7, x + w, y);
-        path.curveTo(x + w * 5 / 6, y - 7, x + w / 6, y - 7, x, y);
+        path.curveTo(
+            x + (int) (w / 6),
+            y + cellHeight / 2,
+            x + w - (int) (w / 6),
+            y + cellHeight / 2,
+            x + w,
+            y);
+        path.curveTo(
+            x + w - (int) (w / 6), y - cellHeight / 2, x + (int) (w / 6), y - cellHeight / 2, x, y);
         path.moveTo(x, y);
         path.lineTo(x, y + h);
-        path.curveTo(x + w / 6, y + h + 10, x + w * 5 / 6, y + h + 10, x + w, y + h);
+        path.curveTo(
+            x + (int) (w / 6),
+            y + h + Math.round(cellHeight * .7),
+            x + w - (int) (w / 6),
+            y + h + Math.round(cellHeight * .7),
+            x + w,
+            y + h);
         path.lineTo(x + w, y);
         return path;
       default:
@@ -387,12 +532,16 @@ final class DiagramParser {
     return ((long) Math.min(a, b) << 32) | (Math.max(a, b) & 0xffffffffL);
   }
 
-  private static double cx(double x) {
-    return (x + 2) * 10 + 5;
+  private static int cellBoundaryOffset(double direction, int size) {
+    return direction > 0 ? size - size / 2 : direction < 0 ? -size / 2 : 0;
   }
 
-  private static double cy(double y) {
-    return (y + 2) * 14 + 7;
+  private double cx(double x) {
+    return (x + 2) * cellWidth + cellWidth / 2;
+  }
+
+  private double cy(double y) {
+    return (y + 2) * cellHeight + cellHeight / 2;
   }
 
   private static Color colour(String code) {
@@ -423,6 +572,7 @@ final class DiagramParser {
     Color colour = Color.WHITE;
     String tag = "";
     Shape shape;
+    double renderArea;
 
     Region(List<Point2D.Double> points, double area, boolean dashed) {
       this.points = points;

@@ -47,6 +47,11 @@ jobs:
         with:
           validate-wrappers: true
 
+      - name: Install SVG rasteriser
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends librsvg2-bin
+
       - name: Build and test on Java 11 and Java 25
         env:
           JAVA_TOOLCHAIN_PATHS: ${{ steps.java11.outputs.path }},${{ steps.java25.outputs.path }}

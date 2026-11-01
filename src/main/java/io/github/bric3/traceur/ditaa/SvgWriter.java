@@ -26,28 +26,42 @@ final class SvgWriter {
         .append("<feBlend in=\"SourceGraphic\" in2=\"blur\" mode=\"normal\"/>")
         .append("</filter></defs>\n")
         .append("<rect width=\"100%\" height=\"100%\" fill=\"white\"/>\n")
-        .append("<g transform=\"scale(")
+        .append("<g stroke=\"black\" stroke-width=\"")
         .append(number(drawing.scale))
-        .append(' ')
-        .append(number(drawing.scaleY))
-        .append(
-            ")\" stroke=\"black\" stroke-width=\"1\" stroke-linejoin=\"round\""
-                + " stroke-linecap=\"round\">\n");
+        .append("\" stroke-linejoin=\"round\" stroke-linecap=\"round\">\n");
     for (Drawing.Figure figure : drawing.figures) {
       if (drawing.shadows && figure.shadow)
         svg.append("<path d=\"")
             .append(path(figure.path))
-            .append("\" fill=\"gray\" stroke=\"gray\" filter=\"url(#shadow)\"/>\n");
+            .append(
+                "\" fill=\"gray\" stroke=\"gray\" stroke-width=\"1\" stroke-linecap=\"square\""
+                    + " filter=\"url(#shadow)\"/>\n");
     }
     for (Drawing.Figure figure : drawing.figures) {
       String path = path(figure.path);
+      // An open filled contour needs its fill stroke before the black outline.
+      boolean separateFill = figure.fill != null && !path.endsWith("Z");
+      if (separateFill) {
+        svg.append("<path d=\"")
+            .append(path)
+            .append("\" fill=\"")
+            .append(colour(figure.fill))
+            .append("\" stroke=\"white\"/>\n");
+      }
       svg.append("<path d=\"")
           .append(path)
           .append("\" fill=\"")
-          .append(figure.fill == null ? "none" : colour(figure.fill))
+          .append(figure.fill == null || separateFill ? "none" : colour(figure.fill))
           .append('"');
-      if (figure.dashed) svg.append(" stroke-dasharray=\"5 5\" stroke-linecap=\"butt\"");
-      if (Color.BLACK.equals(figure.fill)) svg.append(" stroke=\"none\"");
+      if (figure.dashed) {
+        int dash = Math.max(1, (int) (5 * drawing.scale));
+        svg.append(" stroke-dasharray=\"")
+            .append(dash)
+            .append(' ')
+            .append(dash)
+            .append("\" stroke-linecap=\"butt\"");
+      }
+      if (!figure.outline) svg.append(" stroke=\"none\"");
       svg.append("/>\n");
     }
     svg.append(
@@ -111,7 +125,7 @@ final class SvgWriter {
   }
 
   private static String number(double value) {
-    return value == (long) value ? Long.toString((long) value) : Double.toString(value);
+    return value == (long) value ? Long.toString((long) value) : Float.toString((float) value);
   }
 
   private static String escape(String text) {

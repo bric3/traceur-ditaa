@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Shape;
 import java.awt.font.FontRenderContext;
+import java.awt.geom.Path2D;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,7 +15,9 @@ final class Drawing {
   final int width;
   final int height;
   final double scale;
-  final double scaleY;
+  final int cellWidth;
+  final int cellHeight;
+  final Font font;
   final boolean shadows;
   final List<Figure> figures = new ArrayList<>();
   final List<Label> labels = new ArrayList<>();
@@ -22,8 +25,16 @@ final class Drawing {
   Drawing(int width, int height, RenderOptions options) {
     this.width = width;
     this.height = height;
-    this.scale = (int) (10 * options.scale()) / 10.0;
-    this.scaleY = (int) (14 * options.scale()) / 14.0;
+    this.scale = options.scale();
+    this.cellWidth = (int) (10 * options.scale());
+    this.cellHeight = (int) (14 * options.scale());
+    if (cellHeight < 12) {
+      this.font = FONT.deriveFont((float) Math.max(1, cellHeight - 1));
+    } else {
+      double ascentPerPoint = FONT.getLineMetrics("Z", FONT_CONTEXT).getAscent() / FONT.getSize2D();
+      float size = (float) (Math.floor((cellHeight + .5) / ascentPerPoint * 2) / 2);
+      this.font = FONT.deriveFont(size);
+    }
     this.shadows = options.shadows();
   }
 
@@ -32,12 +43,14 @@ final class Drawing {
     final Color fill;
     final boolean dashed;
     final boolean shadow;
+    final boolean outline;
 
-    Figure(Shape path, Color fill, boolean dashed, boolean shadow) {
-      this.path = path;
+    Figure(Shape path, Color fill, boolean dashed, boolean shadow, boolean outline) {
+      this.path = new Path2D.Float(path);
       this.fill = fill;
       this.dashed = dashed;
       this.shadow = shadow;
+      this.outline = outline;
     }
   }
 
@@ -48,22 +61,27 @@ final class Drawing {
     final double y;
     final Color colour;
 
-    Label(String text, double x, double y, Color colour) {
+    Label(
+        String text,
+        double x,
+        double centreY,
+        Color colour,
+        int cellWidth,
+        Font baseFont,
+        boolean leftAligned) {
       this.text = text;
-      double available = text.length() * 10.0;
-      double width = FONT.getStringBounds(text, FONT_CONTEXT).getWidth();
-      this.font =
-          width > available
-              ? FONT.deriveFont((float) (FONT.getSize2D() * available / width))
-              : FONT;
+      double available = text.length() * cellWidth;
+      Font fitted = baseFont;
+      while (fitted.getSize2D() > .5
+          && fitted.getStringBounds(text, FONT_CONTEXT).getWidth() > available) {
+        fitted = fitted.deriveFont(fitted.getSize2D() - .5f);
+      }
+      this.font = fitted;
       double actualWidth = font.getStringBounds(text, FONT_CONTEXT).getWidth();
-      this.x = x + (int) (available - actualWidth) / 2;
-      this.y =
-          y
-              - (int)
-                  ((FONT.getLineMetrics(text, FONT_CONTEXT).getAscent()
-                          - font.getLineMetrics(text, FONT_CONTEXT).getAscent())
-                      / 2);
+      this.x = leftAligned ? x : x + Math.round((available - actualWidth) / 2);
+      int capHeight =
+          (int) Math.round(font.createGlyphVector(FONT_CONTEXT, "Z").getVisualBounds().getHeight());
+      this.y = Math.round(centreY + capHeight / 2);
       this.colour = colour;
     }
   }
