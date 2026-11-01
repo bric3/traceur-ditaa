@@ -598,17 +598,14 @@ final class DiagramParser {
       Point2D.Double point = p.get(pointIndex), next = p.get(corners.get((i + 1) % corners.size()));
       double x = cx(point.x), y = cy(point.y);
       if (options.separation()) {
-        Point2D.Double before = p.get((pointIndex + p.size() - 1) % p.size());
-        Point2D.Double after = p.get((pointIndex + 1) % p.size());
-        if (sharedEdges.contains(
-            edge((int) before.x, (int) before.y, (int) point.x, (int) point.y))) {
-          x -= Math.signum(point.y - before.y) * 2 * options.scale();
-          y += Math.signum(point.x - before.x) * 2 * options.scale();
+        // Sharing any cell edge separates the full straight side.
+        if (sharedSegment(previous, point, sharedEdges)) {
+          x += Math.signum(point.y - previous.y) * 2 * options.scale();
+          y -= Math.signum(point.x - previous.x) * 2 * options.scale();
         }
-        if (sharedEdges.contains(
-            edge((int) point.x, (int) point.y, (int) after.x, (int) after.y))) {
-          x -= Math.signum(after.y - point.y) * 2 * options.scale();
-          y += Math.signum(after.x - point.x) * 2 * options.scale();
+        if (sharedSegment(point, next, sharedEdges)) {
+          x += Math.signum(next.y - point.y) * 2 * options.scale();
+          y -= Math.signum(next.x - point.x) * 2 * options.scale();
         }
       }
       renderCorners.add(new Point2D.Float((float) x, (float) y));
@@ -704,6 +701,18 @@ final class DiagramParser {
     }
     path.closePath();
     return path;
+  }
+
+  private boolean sharedSegment(Point2D.Double start, Point2D.Double end, Set<Long> sharedEdges) {
+    if (sharedEdges.isEmpty()) return false;
+    int x = (int) start.x, y = (int) start.y;
+    int dx = (int) Math.signum(end.x - start.x), dy = (int) Math.signum(end.y - start.y);
+    while (x != end.x || y != end.y) {
+      if (sharedEdges.contains(edge(x, y, x + dx, y + dy))) return true;
+      x += dx;
+      y += dy;
+    }
+    return false;
   }
 
   private static double polygonArea(List<Point2D.Float> corners) {
