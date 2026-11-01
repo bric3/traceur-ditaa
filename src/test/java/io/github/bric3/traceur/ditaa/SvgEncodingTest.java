@@ -106,6 +106,22 @@ class SvgEncodingTest {
   }
 
   @Test
+  void roundedContourCanFollowTheOppositeBoundaryDirection() throws Exception {
+    var output = new ByteArrayOutputStream();
+    new DitaaRenderer()
+        .render(
+            "       /====\\\n       :    :\n       \\====+",
+            new RenderOptions(1, false, true),
+            OutputFormat.SVG,
+            output);
+    Element path =
+        (Element) parse(output.toByteArray()).getElementsByTagNameNS("*", "path").item(0);
+    assertEquals(
+        "M140 35Q145 35 145 42L145 63L100 63Q95 63 95 56L95 42Q95 35 100 35Z",
+        path.getAttribute("d"));
+  }
+
+  @Test
   void textIsUtf8AndXmlEscapingPreservesEveryCharacter() throws Exception {
     String text = "café 日本語 😀 <A & B> \"quoted\" 'apostrophe'";
     var drawing = new Drawing(400, 80, new RenderOptions(1, false, true));

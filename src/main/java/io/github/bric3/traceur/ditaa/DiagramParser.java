@@ -563,6 +563,7 @@ final class DiagramParser {
     Path2D.Double path = new Path2D.Double();
     List<Point2D.Float> renderCorners = new ArrayList<>();
     Collections.reverse(corners.subList(1, corners.size()));
+    boolean clockwise = false;
     // Boundary-cell hash order fixes the first curve and the dash phase.
     if (corners.stream()
         .anyMatch(
@@ -574,17 +575,21 @@ final class DiagramParser {
       int seed = 0, firstBucket = Integer.MAX_VALUE;
       for (int i = 0; i < p.size(); i++) {
         Point2D.Double point = p.get(i);
-        int hash = (((int) point.x + 2) << 16) | ((int) point.y + 2);
-        int bucket = (hash ^ (hash >>> 16)) & (capacity - 1);
+        int bucket = boundaryBucket(point, capacity);
         Point2D.Double first = p.get(seed);
         if (bucket < firstBucket || bucket == firstBucket && point.y < first.y) {
           seed = i;
           firstBucket = bucket;
         }
       }
+      clockwise =
+          boundaryBucket(p.get((seed + 1) % p.size()), capacity)
+              < boundaryBucket(p.get((seed + p.size() - 1) % p.size()), capacity);
+      if (clockwise) Collections.reverse(corners.subList(1, corners.size()));
       int first = 0, distance = p.size();
       for (int i = 0; i < corners.size(); i++) {
-        int candidate = (seed - corners.get(i) + p.size()) % p.size();
+        int candidate =
+            ((clockwise ? corners.get(i) - seed : seed - corners.get(i)) + p.size()) % p.size();
         if (candidate < distance) {
           first = i;
           distance = candidate;
@@ -598,14 +603,15 @@ final class DiagramParser {
       Point2D.Double point = p.get(pointIndex), next = p.get(corners.get((i + 1) % corners.size()));
       double x = cx(point.x), y = cy(point.y);
       if (options.separation()) {
+        double offset = (clockwise ? -2 : 2) * options.scale();
         // Sharing any cell edge separates the full straight side.
         if (sharedSegment(previous, point, sharedEdges)) {
-          x += Math.signum(point.y - previous.y) * 2 * options.scale();
-          y -= Math.signum(point.x - previous.x) * 2 * options.scale();
+          x += Math.signum(point.y - previous.y) * offset;
+          y -= Math.signum(point.x - previous.x) * offset;
         }
         if (sharedSegment(point, next, sharedEdges)) {
-          x += Math.signum(next.y - point.y) * 2 * options.scale();
-          y -= Math.signum(next.x - point.x) * 2 * options.scale();
+          x += Math.signum(next.y - point.y) * offset;
+          y -= Math.signum(next.x - point.x) * offset;
         }
       }
       renderCorners.add(new Point2D.Float((float) x, (float) y));
@@ -701,6 +707,11 @@ final class DiagramParser {
     }
     path.closePath();
     return path;
+  }
+
+  private static int boundaryBucket(Point2D.Double point, int capacity) {
+    int hash = (((int) point.x + 2) << 16) | ((int) point.y + 2);
+    return (hash ^ (hash >>> 16)) & (capacity - 1);
   }
 
   private boolean sharedSegment(Point2D.Double start, Point2D.Double end, Set<Long> sharedEdges) {
