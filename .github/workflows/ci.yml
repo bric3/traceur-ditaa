@@ -1,0 +1,122 @@
+# SPDX-License-Identifier: MPL-2.0
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout code and tags
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 11
+        id: java11
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '11'
+
+      - name: Set up Java 25
+        id: java25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          validate-wrappers: true
+
+      - name: Build and test on Java 11 and Java 25
+        env:
+          JAVA_TOOLCHAIN_PATHS: ${{ steps.java11.outputs.path }},${{ steps.java25.outputs.path }}
+        run: ./gradlew build printSemver -Porg.gradle.java.installations.paths="$JAVA_TOOLCHAIN_PATHS"
+
+      - name: Read artifact version
+        id: version
+        run: echo "version=$(head -n 1 build/semver/version.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload JARs
+        uses: actions/upload-artifact@v6
+        with:
+          name: traceur-ditaa-jars
+          path: build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish test report
+        if: always()
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: 'build/test-results/**/TEST-*.xml'
+          check_name: Test Results
+          annotate_only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork }}
+          detailed_summary: true
+          include_passed: true
+          fail_on_failure: true
+
+      - name: Upload failed test reports
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-reports
+          path: |
+            build/reports/tests/
+            build/test-results/
+          retention-days: 7
+
+  release:
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: draft-release-${{ needs.build.outputs.version }}
+      cancel-in-progress: false
+    steps:
+      - name: Download JARs from this build
+        uses: actions/download-artifact@v6
+        with:
+          name: traceur-ditaa-jars
+          path: artifacts
+
+      - name: Create or update draft release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ needs.build.outputs.version }}
+          commit: ${{ github.sha }}
+          name: Traceur Ditaa ${{ needs.build.outputs.version }}
+          draft: true
+          allowUpdates: true
+          skipIfReleaseExists: true
+          artifactErrorsFailBuild: true
+          artifacts: artifacts/*.jar
+          makeLatest: false
+          body: |
+            Experimental Java 11 library for rendering ditaa diagrams as PNG and SVG.
+            Pixel compatibility is incomplete.
+
+            Built from ${{ github.sha }}.
+            See the [validation snapshot](${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/docs/VALIDATION.md) for comparison and cold-start results.
