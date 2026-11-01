@@ -15,6 +15,29 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 class SvgEncodingTest {
+  @Test
+  void dashedStorageHasTwoUnfilledDashedStrokes() throws Exception {
+    var output = new ByteArrayOutputStream();
+    new DitaaRenderer()
+        .render(
+            "+=======+\n: {s}   :\n+=======+",
+            new RenderOptions(1, false, true),
+            OutputFormat.SVG,
+            output);
+    var paths = parse(output.toByteArray()).getElementsByTagNameNS("*", "path");
+    assertEquals(2, paths.getLength());
+    var underlay = (Element) paths.item(0);
+    var outline = (Element) paths.item(1);
+    assertEquals("white", underlay.getAttribute("stroke"));
+    assertEquals("none", underlay.getAttribute("fill"));
+    assertEquals("none", outline.getAttribute("fill"));
+    assertEquals("5 5", underlay.getAttribute("stroke-dasharray"));
+    assertEquals("5 5", outline.getAttribute("stroke-dasharray"));
+    assertEquals("butt", underlay.getAttribute("stroke-linecap"));
+    assertEquals("butt", outline.getAttribute("stroke-linecap"));
+    assertEquals(underlay.getAttribute("d"), outline.getAttribute("d"));
+  }
+
   static Document parse(byte[] bytes) throws Exception {
     var factory = DocumentBuilderFactory.newInstance();
     factory.setNamespaceAware(true);

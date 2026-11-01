@@ -48,6 +48,7 @@ final class Drawing {
   static final class Figure {
     enum Kind {
       REGION,
+      STORAGE,
       CONNECTOR,
       ARROW,
       MARKER
@@ -64,7 +65,7 @@ final class Drawing {
       this.path = new Path2D.Float(path);
       this.fill = fill;
       this.dashed = dashed;
-      this.shadow = kind == Kind.REGION && !dashed;
+      this.shadow = (kind == Kind.REGION || kind == Kind.STORAGE) && !dashed;
       this.kind = kind;
       this.area = area;
     }

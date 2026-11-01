@@ -38,34 +38,7 @@ final class SvgWriter {
                     + " filter=\"url(#shadow)\"/>\n");
     }
     for (Drawing.Figure figure : drawing.figures) {
-      String path = path(figure.path);
-      // An open filled contour needs its fill stroke before the black outline.
-      boolean separateFill = figure.fill != null && !path.endsWith("Z");
-      if (separateFill) {
-        svg.append("<path d=\"")
-            .append(path)
-            .append("\" fill=\"")
-            .append(colour(figure.fill))
-            .append("\" stroke=\"white\"/>\n");
-      }
-      svg.append("<path d=\"")
-          .append(path)
-          .append("\" fill=\"")
-          .append(
-              figure.fill == null
-                  ? (figure.dashed ? "white" : "none")
-                  : separateFill ? "none" : colour(figure.fill))
-          .append('"');
-      if (figure.dashed) {
-        int dash = Math.max(1, (int) (5 * drawing.scale));
-        svg.append(" stroke-dasharray=\"")
-            .append(dash)
-            .append(' ')
-            .append(dash)
-            .append("\" stroke-linecap=\"butt\"");
-      }
-      if (figure.kind == Drawing.Figure.Kind.ARROW) svg.append(" stroke=\"none\"");
-      svg.append("/>\n");
+      figure(svg, figure, drawing.scale);
     }
     svg.append(
         "<g stroke=\"none\" font-family=\"Courier\" font-size=\"15\""
@@ -85,6 +58,40 @@ final class SvgWriter {
     }
     svg.append("</g>\n</g>\n</svg>\n");
     output.write(svg.toString().getBytes(StandardCharsets.UTF_8));
+  }
+
+  private static void figure(StringBuilder svg, Drawing.Figure figure, double scale) {
+    String path = path(figure.path);
+    boolean separateFill = figure.kind == Drawing.Figure.Kind.STORAGE;
+    if (separateFill) {
+      svg.append("<path d=\"")
+          .append(path)
+          .append("\" fill=\"")
+          .append(figure.dashed ? "none" : colour(figure.fill))
+          .append("\" stroke=\"white\"");
+      if (figure.dashed) dashes(svg, scale);
+      svg.append("/>\n");
+    }
+    svg.append("<path d=\"")
+        .append(path)
+        .append("\" fill=\"")
+        .append(
+            figure.fill == null
+                ? (figure.dashed ? "white" : "none")
+                : separateFill ? "none" : colour(figure.fill))
+        .append('"');
+    if (figure.dashed) dashes(svg, scale);
+    if (figure.kind == Drawing.Figure.Kind.ARROW) svg.append(" stroke=\"none\"");
+    svg.append("/>\n");
+  }
+
+  private static void dashes(StringBuilder svg, double scale) {
+    int dash = Math.max(1, (int) (5 * scale));
+    svg.append(" stroke-dasharray=\"")
+        .append(dash)
+        .append(' ')
+        .append(dash)
+        .append("\" stroke-linecap=\"butt\"");
   }
 
   private static String path(Shape shape) {

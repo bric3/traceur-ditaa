@@ -260,7 +260,7 @@ final class DiagramParser {
               region.shape,
               region.colour,
               region.dashed,
-              Drawing.Figure.Kind.REGION,
+              region.tag.equals("s") ? Drawing.Figure.Kind.STORAGE : Drawing.Figure.Kind.REGION,
               region.renderArea));
     }
 
@@ -347,7 +347,8 @@ final class DiagramParser {
       }
 
     drawing.figures.sort(
-        Comparator.comparing((Drawing.Figure f) -> f.kind == Drawing.Figure.Kind.MARKER)
+        Comparator.comparing((Drawing.Figure f) -> f.kind != Drawing.Figure.Kind.STORAGE)
+            .thenComparing(f -> f.kind == Drawing.Figure.Kind.MARKER)
             .thenComparing(Comparator.comparingDouble((Drawing.Figure f) -> f.area).reversed()));
 
     for (int y = 0; y < height; y++) {
