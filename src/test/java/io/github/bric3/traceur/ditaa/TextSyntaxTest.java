@@ -107,6 +107,16 @@ class TextSyntaxTest {
     var lower = DiagramParser.parse("|\nv", RenderOptions.DEFAULT);
     assertEquals(2, upper.figures.size());
     assertTrue(upper.labels.isEmpty());
-    assertEquals(upper.figures.get(1).path.getBounds2D(), lower.figures.get(1).path.getBounds2D());
+    var upperArrow =
+        upper.figures.stream()
+            .filter(figure -> figure.kind == Drawing.Figure.Kind.ARROW)
+            .findFirst()
+            .orElseThrow();
+    var lowerArrow =
+        lower.figures.stream()
+            .filter(figure -> figure.kind == Drawing.Figure.Kind.ARROW)
+            .findFirst()
+            .orElseThrow();
+    assertEquals(upperArrow.path.getBounds2D(), lowerArrow.path.getBounds2D());
   }
 }

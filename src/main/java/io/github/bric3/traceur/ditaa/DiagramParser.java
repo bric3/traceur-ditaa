@@ -139,19 +139,25 @@ final class DiagramParser {
       case '*':
         return 15;
       case '>':
-        return 4;
       case '<':
-        return 1;
       case '^':
-        return 2;
+        return arrowDirections(x, y);
       case 'v':
       case 'V':
         return Character.isLetterOrDigit(at(x - 1, y)) || Character.isLetterOrDigit(at(x + 1, y))
             ? 0
-            : 8;
+            : arrowDirections(x, y);
       default:
         return 0;
     }
+  }
+
+  private int arrowDirections(int x, int y) {
+    int directions = 0;
+    for (int d = 0; d < 4; d++) {
+      if ("-=|:".indexOf(at(x + DX[d], y + DY[d])) >= 0) directions |= 1 << d;
+    }
+    return directions;
   }
 
   private void build(Drawing drawing) {
@@ -262,11 +268,12 @@ final class DiagramParser {
     Set<Long> drawn = new HashSet<>(boundary);
     for (int y = 0; y < height; y++)
       for (int x = 0; x < width; x++) {
-        if (Integer.bitCount(links[y][x]) != 2) connectors(x, y, drawn, drawing);
+        if (Integer.bitCount(links[y][x]) != 2 || "<>^vV".indexOf(at(x, y)) >= 0)
+          connectors(x, y, boundary, drawn, drawing);
       }
     for (int y = 0; y < height; y++)
       for (int x = 0; x < width; x++) {
-        connectors(x, y, drawn, drawing);
+        connectors(x, y, boundary, drawn, drawing);
         char c = at(x, y);
         boolean arrowCharacter =
             "<>^".indexOf(c) >= 0 || (c == 'v' || c == 'V') && links[y][x] != 0;
@@ -454,7 +461,7 @@ final class DiagramParser {
     return at(x, y) != ' ' && at(x + 1, y) == ' ';
   }
 
-  private void connectors(int x, int y, Set<Long> drawn, Drawing drawing) {
+  private void connectors(int x, int y, Set<Long> boundary, Set<Long> drawn, Drawing drawing) {
     for (int direction = 0; direction < 4; direction++) {
       if ((links[y][x] & (1 << direction)) == 0) continue;
       int nx = x + DX[direction], ny = y + DY[direction];
@@ -469,7 +476,8 @@ final class DiagramParser {
         if (!drawn.add(edge(px, py, nx, ny))) break;
         points.add(new Point2D.Double(nx, ny));
         dashed |= at(nx, ny) == '=' || at(nx, ny) == ':';
-        if (Integer.bitCount(links[ny][nx]) != 2) break;
+        // An arrowhead terminates each shaft independently of the arrow's direction.
+        if (Integer.bitCount(links[ny][nx]) != 2 || "<>^vV".indexOf(at(nx, ny)) >= 0) break;
         int remaining = links[ny][nx] & ~(1 << ((d + 2) % 4));
         px = nx;
         py = ny;
@@ -485,7 +493,8 @@ final class DiagramParser {
           Collections.reverse(points);
       }
       Path2D.Double path = new Path2D.Double();
-      path.moveTo(cx(points.get(0).x), cy(points.get(0).y));
+      Point2D.Double startPosition = connectorEndpoint(points, 0, boundary);
+      path.moveTo(startPosition.x, startPosition.y);
       List<Point2D.Float> corners = new ArrayList<>();
       corners.add(new Point2D.Float((float) cx(points.get(0).x), (float) cy(points.get(0).y)));
       for (int i = 1; i < points.size() - 1; i++) {
@@ -508,12 +517,37 @@ final class DiagramParser {
         }
       }
       Point2D.Double end = points.get(points.size() - 1);
-      path.lineTo(cx(end.x), cy(end.y));
+      Point2D.Double endPosition = connectorEndpoint(points, points.size() - 1, boundary);
+      path.lineTo(endPosition.x, endPosition.y);
       corners.add(new Point2D.Float((float) cx(end.x), (float) cy(end.y)));
       drawing.figures.add(
           new Drawing.Figure(
               path, null, dashed, Drawing.Figure.Kind.CONNECTOR, polygonArea(corners)));
     }
+  }
+
+  private Point2D.Double connectorEndpoint(
+      List<Point2D.Double> points, int index, Set<Long> boundary) {
+    Point2D.Double point = points.get(index);
+    double x = cx(point.x), y = cy(point.y);
+    char c = at((int) point.x, (int) point.y);
+    if (points.size() == 2 && (c == '-' || c == '|')) {
+      Point2D.Double other = points.get(1 - index);
+      int ox = (int) other.x, oy = (int) other.y;
+      boolean anchored = "<>^vV".indexOf(at(ox, oy)) >= 0;
+      if (!anchored && Integer.bitCount(links[oy][ox]) == 3) {
+        int closedEdges = 0;
+        for (int d = 0; d < 4; d++)
+          if ((links[oy][ox] & (1 << d)) != 0
+              && boundary.contains(edge(ox, oy, ox + DX[d], oy + DY[d]))) closedEdges++;
+        anchored = closedEdges == 2;
+      }
+      if (anchored) {
+        if (c == '-') x = (point.x + 2) * cellWidth + (point.x > other.x ? cellWidth - 1 : 0);
+        else y = (point.y + 2) * cellHeight + (point.y > other.y ? cellHeight - 1 : 0);
+      }
+    }
+    return new Point2D.Double(x, y);
   }
 
   private Shape shape(Region region, Set<Long> sharedEdges) {
