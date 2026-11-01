@@ -10,6 +10,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 final class Drawing {
+  enum TextAlignment {
+    LEFT,
+    CENTRE,
+    RIGHT
+  }
+
   static final Font FONT = new Font(Font.DIALOG, Font.BOLD, 1).deriveFont(14.5f);
   private static final FontRenderContext FONT_CONTEXT = new FontRenderContext(null, true, false);
   final int width;
@@ -68,7 +74,7 @@ final class Drawing {
         Color colour,
         int cellWidth,
         Font baseFont,
-        boolean leftAligned) {
+        TextAlignment alignment) {
       this.text = text;
       double available = text.length() * cellWidth;
       Font fitted = baseFont;
@@ -78,7 +84,12 @@ final class Drawing {
       }
       this.font = fitted;
       double actualWidth = font.getStringBounds(text, FONT_CONTEXT).getWidth();
-      this.x = leftAligned ? x : x + Math.round((available - actualWidth) / 2);
+      double padding = available - actualWidth;
+      this.x =
+          x
+              + (alignment == TextAlignment.LEFT
+                  ? 0
+                  : alignment == TextAlignment.RIGHT ? padding : Math.round(padding / 2));
       int capHeight =
           (int) Math.round(font.createGlyphVector(FONT_CONTEXT, "Z").getVisualBounds().getHeight());
       this.y = Math.round(centreY + capHeight / 2);

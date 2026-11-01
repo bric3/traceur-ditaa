@@ -23,10 +23,40 @@ class SvgEncodingTest {
   }
 
   @Test
+  void roundedContourStartsAtTheFirstBoundaryCorner() throws Exception {
+    var output = new ByteArrayOutputStream();
+    new DitaaRenderer()
+        .render(
+            "    /--\\\n    |  |\n    \\--/",
+            new RenderOptions(1, false, true),
+            OutputFormat.SVG,
+            output);
+    Element path =
+        (Element) parse(output.toByteArray()).getElementsByTagNameNS("*", "path").item(0);
+    assertEquals(
+        "M65 56Q65 63 70 63L90 63Q95 63 95 56L95 42Q95 35 90 35L70 35Q65 35 65 42Z",
+        path.getAttribute("d"));
+  }
+
+  @ParameterizedTest
+  @CsvSource({"0,0,30,35", "4,0,65,56", "0,3,55,84", "4,3,65,98", "19,0,215,56"})
+  void roundedContourStartsFollowPaddedBoundaryCells(int column, int row, int x, int y)
+      throws Exception {
+    String indent = " ".repeat(column);
+    String text = "\n".repeat(row) + indent + "/--\\\n" + indent + "|  |\n" + indent + "\\--/";
+    var output = new ByteArrayOutputStream();
+    new DitaaRenderer().render(text, new RenderOptions(1, false, true), OutputFormat.SVG, output);
+    Element path =
+        (Element) parse(output.toByteArray()).getElementsByTagNameNS("*", "path").item(0);
+    assertTrue(path.getAttribute("d").startsWith("M" + x + " " + y + "Q"), path.getAttribute("d"));
+  }
+
+  @Test
   void textIsUtf8AndXmlEscapingPreservesEveryCharacter() throws Exception {
     String text = "café 日本語 😀 <A & B> \"quoted\" 'apostrophe'";
     var drawing = new Drawing(400, 80, new RenderOptions(1, false, true));
-    drawing.labels.add(new Drawing.Label(text, 20, 35, Color.BLACK, 10, drawing.font, true));
+    drawing.labels.add(
+        new Drawing.Label(text, 20, 35, Color.BLACK, 10, drawing.font, Drawing.TextAlignment.LEFT));
     var output = new ByteArrayOutputStream();
     SvgWriter.write(drawing, output);
     Document document = parse(output.toByteArray());

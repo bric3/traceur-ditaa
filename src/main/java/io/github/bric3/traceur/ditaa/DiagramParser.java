@@ -7,12 +7,15 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -104,13 +107,20 @@ final class DiagramParser {
   private int directions(int x, int y) {
     char c = at(x, y);
     if (c != '/' && c != '\\') return basicDirections(x, y);
-    int neighbours = 0;
-    for (int direction = 0; direction < 4; direction++)
+    int neighbours = 0, lines = 0;
+    for (int direction = 0; direction < 4; direction++) {
       if ((basicDirections(x + DX[direction], y + DY[direction]) & (1 << ((direction + 2) % 4)))
-          != 0) neighbours |= 1 << direction;
+          != 0) {
+        neighbours |= 1 << direction;
+        char neighbour = at(x + DX[direction], y + DY[direction]);
+        if (neighbour != '/' && neighbour != '\\') lines |= 1 << direction;
+      }
+    }
     int first = c == '/' ? 3 : 6;
     int second = c == '/' ? 12 : 9;
-    if ((neighbours & first) == first) return first;
+    if ((neighbours & first) == first
+        && ((neighbours & second) != second
+            || Integer.bitCount(lines & first) >= Integer.bitCount(lines & second))) return first;
     if ((neighbours & second) == second) return second;
     return 0;
   }
@@ -317,6 +327,14 @@ final class DiagramParser {
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) if (consumed[y][x]) grid[y][x] = ' ';
     }
+    int[][] groups = textGroups();
+    Map<Long, Integer> starts = new HashMap<>(), ends = new HashMap<>();
+    for (int y = 0; y < height; y++)
+      for (int x = 0; x < width; x++) {
+        long key = ((long) groups[y][x] << 32) | x;
+        if (textStartsAt(x, y)) starts.merge(key, 1, Integer::sum);
+        if (textEndsAt(x, y)) ends.merge(key, 1, Integer::sum);
+      }
     for (int y = 0; y < height; y++) {
       int x = 0;
       while (x < width) {
@@ -337,6 +355,16 @@ final class DiagramParser {
                     ? Color.WHITE
                     : Color.BLACK;
           }
+        int end = start + label.length() - 1;
+        long group = (long) groups[y][start] << 32;
+        int otherStarts = starts.getOrDefault(group | start, 0) - 1;
+        int otherEnds = ends.getOrDefault(group | end, 0) - (textEndsAt(end, y) ? 1 : 0);
+        Drawing.TextAlignment alignment =
+            otherStarts > otherEnds
+                ? Drawing.TextAlignment.LEFT
+                : otherEnds > otherStarts
+                    ? Drawing.TextAlignment.RIGHT
+                    : Drawing.TextAlignment.CENTRE;
         drawing.labels.add(
             new Drawing.Label(
                 label,
@@ -345,13 +373,52 @@ final class DiagramParser {
                 colour,
                 cellWidth,
                 drawing.font,
-                textStartsAt(start, y - 1) || textStartsAt(start, y + 1)));
+                alignment));
       }
     }
   }
 
+  private int[][] textGroups() {
+    int[][] groups = new int[height][width];
+    for (int[] row : groups) Arrays.fill(row, -1);
+    ArrayDeque<Integer> pending = new ArrayDeque<>();
+    int group = 0;
+    for (int y = 0; y < height; y++)
+      for (int x = 0; x < width; x++) {
+        if (groups[y][x] != -1 || !textCell(x, y)) continue;
+        groups[y][x] = group;
+        pending.add(y * width + x);
+        while (!pending.isEmpty()) {
+          int cell = pending.removeFirst();
+          int px = cell % width, py = cell / width;
+          for (int d = 0; d < 4; d++) {
+            int nx = px + DX[d], ny = py + DY[d];
+            if (nx >= 0
+                && nx < width
+                && ny >= 0
+                && ny < height
+                && groups[ny][nx] == -1
+                && textCell(nx, ny)) {
+              groups[ny][nx] = group;
+              pending.addLast(ny * width + nx);
+            }
+          }
+        }
+        group++;
+      }
+    return groups;
+  }
+
+  private boolean textCell(int x, int y) {
+    return at(x, y) != ' ' || (at(x - 1, y) != ' ' && at(x + 1, y) != ' ');
+  }
+
   private boolean textStartsAt(int x, int y) {
-    return y >= 0 && y < height && at(x, y) != ' ' && (x == 0 || at(x - 1, y) == ' ');
+    return at(x, y) != ' ' && at(x - 1, y) == ' ';
+  }
+
+  private boolean textEndsAt(int x, int y) {
+    return at(x, y) != ' ' && at(x + 1, y) == ' ';
   }
 
   private void connectors(int x, int y, Set<Long> drawn, Drawing drawing) {
@@ -422,6 +489,35 @@ final class DiagramParser {
     Path2D.Double path = new Path2D.Double();
     List<Point2D.Float> renderCorners = new ArrayList<>();
     Collections.reverse(corners.subList(1, corners.size()));
+    // Boundary-cell hash order fixes the first curve and the dash phase.
+    if (corners.stream()
+        .anyMatch(
+            i ->
+                at((int) p.get(i).x, (int) p.get(i).y) == '/'
+                    || at((int) p.get(i).x, (int) p.get(i).y) == '\\')) {
+      int capacity = 16;
+      while (p.size() > capacity * .75) capacity *= 2;
+      int seed = 0, firstBucket = Integer.MAX_VALUE;
+      for (int i = 0; i < p.size(); i++) {
+        Point2D.Double point = p.get(i);
+        int hash = (((int) point.x + 2) << 16) | ((int) point.y + 2);
+        int bucket = (hash ^ (hash >>> 16)) & (capacity - 1);
+        Point2D.Double first = p.get(seed);
+        if (bucket < firstBucket || bucket == firstBucket && point.y < first.y) {
+          seed = i;
+          firstBucket = bucket;
+        }
+      }
+      int first = 0, distance = p.size();
+      for (int i = 0; i < corners.size(); i++) {
+        int candidate = (seed - corners.get(i) + p.size()) % p.size();
+        if (candidate < distance) {
+          first = i;
+          distance = candidate;
+        }
+      }
+      Collections.rotate(corners, -first);
+    }
     for (int i = 0; i < corners.size(); i++) {
       Point2D.Double previous = p.get(corners.get((i + corners.size() - 1) % corners.size()));
       int pointIndex = corners.get(i);

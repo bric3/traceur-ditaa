@@ -17,6 +17,18 @@ class TextSyntaxTest {
   }
 
   @Test
+  void fourTouchingRoundedBoxesKeepTheirCornerPairs() {
+    String row = "/----\\/----\\\n|    ||    |\n\\----/\\----/\n";
+    var drawing = DiagramParser.parse(row + row, RenderOptions.DEFAULT);
+    assertEquals(4, drawing.figures.size());
+    for (var figure : drawing.figures) {
+      assertTrue(figure.shadow);
+      assertEquals(50, figure.path.getBounds2D().getWidth());
+      assertEquals(28, figure.path.getBounds2D().getHeight());
+    }
+  }
+
+  @Test
   void touchingRoundedBoxesKeepSeparateInteriors() {
     var drawing =
         DiagramParser.parse("/----\\/----\\\n|    ||    |\n\\----/\\----/", RenderOptions.DEFAULT);
