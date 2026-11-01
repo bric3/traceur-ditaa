@@ -6,6 +6,7 @@ import java.awt.Font;
 import java.awt.Shape;
 import java.awt.font.FontRenderContext;
 import java.awt.geom.Path2D;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,18 +46,27 @@ final class Drawing {
   }
 
   static final class Figure {
+    enum Kind {
+      REGION,
+      CONNECTOR,
+      ARROW,
+      MARKER
+    }
+
     final Shape path;
     final Color fill;
     final boolean dashed;
     final boolean shadow;
-    final boolean outline;
+    final Kind kind;
+    final double area;
 
-    Figure(Shape path, Color fill, boolean dashed, boolean shadow, boolean outline) {
+    Figure(Shape path, Color fill, boolean dashed, Kind kind, double area) {
       this.path = new Path2D.Float(path);
       this.fill = fill;
       this.dashed = dashed;
-      this.shadow = shadow;
-      this.outline = outline;
+      this.shadow = kind == Kind.REGION && !dashed;
+      this.kind = kind;
+      this.area = area;
     }
   }
 
@@ -65,7 +75,7 @@ final class Drawing {
     final String text;
     final double x;
     final double y;
-    final Color colour;
+    Color colour;
 
     Label(
         String text,
@@ -94,6 +104,12 @@ final class Drawing {
           (int) Math.round(font.createGlyphVector(FONT_CONTEXT, "Z").getVisualBounds().getHeight());
       this.y = Math.round(centreY + capHeight / 2);
       this.colour = colour;
+    }
+
+    Rectangle2D bounds() {
+      Rectangle2D bounds = font.getStringBounds(text, FONT_CONTEXT);
+      return new Rectangle2D.Double(
+          x + bounds.getX(), y + bounds.getY(), bounds.getWidth(), bounds.getHeight());
     }
   }
 }

@@ -70,7 +70,7 @@ final class PngWriter {
           graphics.fill(figure.path);
         }
         graphics.setColor(Color.BLACK);
-        if (figure.outline) graphics.draw(figure.path);
+        if (figure.kind != Drawing.Figure.Kind.ARROW) graphics.draw(figure.path);
       }
       for (Drawing.Label label : drawing.labels) {
         graphics.setFont(label.font);

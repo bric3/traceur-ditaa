@@ -39,7 +39,8 @@ class GenerateReferenceFixtures {
       throw new IllegalArgumentException("The reference binary does not match ditaa 0.11.0");
     }
     Path fixtures = Path.of("src/test/resources/compatibility");
-    Path work = Files.createDirectories(Path.of("build/reference-fixtures"));
+    Path work =
+        Files.createDirectories(Path.of("build/reference-fixtures", java11 ? "java11" : "java25"));
     Path outputs = java11 ? Files.createDirectories(fixtures.resolve("java11")) : fixtures;
     if (java11) {
       Process version =

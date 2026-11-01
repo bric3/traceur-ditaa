@@ -155,6 +155,7 @@ final class DiagramParser {
   }
 
   private void build(Drawing drawing) {
+    Drawing.Figure[][] arrowCells = new Drawing.Figure[height][width];
     for (int y = 0; y < height; y++)
       for (int x = 0; x + 2 < width; x++) {
         char marker = at(x, y);
@@ -249,7 +250,12 @@ final class DiagramParser {
     regions.sort(Comparator.comparingDouble((Region r) -> r.renderArea).reversed());
     for (Region region : regions) {
       drawing.figures.add(
-          new Drawing.Figure(region.shape, region.colour, region.dashed, !region.dashed, true));
+          new Drawing.Figure(
+              region.shape,
+              region.colour,
+              region.dashed,
+              Drawing.Figure.Kind.REGION,
+              region.renderArea));
     }
 
     // Draw each remaining connector as a continuous path so dash phase spans cells.
@@ -296,7 +302,15 @@ final class DiagramParser {
               break;
           }
           arrow.closePath();
-          drawing.figures.add(new Drawing.Figure(arrow, Color.BLACK, false, false, false));
+          Drawing.Figure arrowFigure =
+              new Drawing.Figure(
+                  arrow,
+                  Color.BLACK,
+                  false,
+                  Drawing.Figure.Kind.ARROW,
+                  cellWidth * cellHeight / 2.0);
+          drawing.figures.add(arrowFigure);
+          arrowCells[y][x] = arrowFigure;
         } else if (c == '*') {
           if (links[y][x] != 0) {
             drawing.figures.add(
@@ -308,8 +322,8 @@ final class DiagramParser {
                         cellWidth * .7),
                     Color.WHITE,
                     false,
-                    false,
-                    true));
+                    Drawing.Figure.Kind.MARKER,
+                    0));
           }
         } else if (links[y][x] == 0 && (c == '-' || c == '|')) {
           Path2D.Double path = new Path2D.Double();
@@ -320,9 +334,14 @@ final class DiagramParser {
             path.moveTo(cx(x), (y + 2) * cellHeight);
             path.lineTo(cx(x), (y + 3) * cellHeight - 1);
           }
-          drawing.figures.add(new Drawing.Figure(path, null, false, false, true));
+          drawing.figures.add(
+              new Drawing.Figure(path, null, false, Drawing.Figure.Kind.CONNECTOR, 0));
         }
       }
+
+    drawing.figures.sort(
+        Comparator.comparing((Drawing.Figure f) -> f.kind == Drawing.Figure.Kind.MARKER)
+            .thenComparing(Comparator.comparingDouble((Drawing.Figure f) -> f.area).reversed()));
 
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) if (consumed[y][x]) grid[y][x] = ' ';
@@ -350,8 +369,9 @@ final class DiagramParser {
         for (Region region : regions)
           if (region.gridPath.contains(start, y)) {
             Color bg = region.colour;
+            // The reference uses the brightest RGB channel for text foreground.
             colour =
-                bg.getRed() * 299 + bg.getGreen() * 587 + bg.getBlue() * 114 < 100000
+                Math.max(bg.getRed(), Math.max(bg.getGreen(), bg.getBlue())) < 200
                     ? Color.WHITE
                     : Color.BLACK;
           }
@@ -365,7 +385,7 @@ final class DiagramParser {
                 : otherEnds > otherStarts
                     ? Drawing.TextAlignment.RIGHT
                     : Drawing.TextAlignment.CENTRE;
-        drawing.labels.add(
+        Drawing.Label positioned =
             new Drawing.Label(
                 label,
                 (start + 2) * cellWidth,
@@ -373,9 +393,22 @@ final class DiagramParser {
                 colour,
                 cellWidth,
                 drawing.font,
-                alignment));
+                alignment);
+        if (intersectsArrow(positioned.bounds(), arrowCells)) positioned.colour = Color.WHITE;
+        drawing.labels.add(positioned);
       }
     }
+  }
+
+  private boolean intersectsArrow(Rectangle2D bounds, Drawing.Figure[][] arrows) {
+    int left = Math.max(0, (int) Math.floor(bounds.getMinX() / cellWidth) - 2);
+    int right = Math.min(width - 1, (int) Math.floor(bounds.getMaxX() / cellWidth) - 2);
+    int top = Math.max(0, (int) Math.floor(bounds.getMinY() / cellHeight) - 2);
+    int bottom = Math.min(height - 1, (int) Math.floor(bounds.getMaxY() / cellHeight) - 2);
+    for (int y = top; y <= bottom; y++)
+      for (int x = left; x <= right; x++)
+        if (arrows[y][x] != null && arrows[y][x].path.intersects(bounds)) return true;
+    return false;
   }
 
   private int[][] textGroups() {
@@ -453,11 +486,14 @@ final class DiagramParser {
       }
       Path2D.Double path = new Path2D.Double();
       path.moveTo(cx(points.get(0).x), cy(points.get(0).y));
+      List<Point2D.Float> corners = new ArrayList<>();
+      corners.add(new Point2D.Float((float) cx(points.get(0).x), (float) cy(points.get(0).y)));
       for (int i = 1; i < points.size() - 1; i++) {
         Point2D.Double before = points.get(i - 1), point = points.get(i), after = points.get(i + 1);
         if ((point.x - before.x) * (after.y - point.y)
             == (point.y - before.y) * (after.x - point.x)) continue;
         double pxCentre = cx(point.x), pyCentre = cy(point.y);
+        corners.add(new Point2D.Float((float) pxCentre, (float) pyCentre));
         if (at((int) point.x, (int) point.y) == '/' || at((int) point.x, (int) point.y) == '\\') {
           path.lineTo(
               pxCentre + cellBoundaryOffset(before.x - point.x, cellWidth),
@@ -473,7 +509,10 @@ final class DiagramParser {
       }
       Point2D.Double end = points.get(points.size() - 1);
       path.lineTo(cx(end.x), cy(end.y));
-      drawing.figures.add(new Drawing.Figure(path, null, dashed, false, true));
+      corners.add(new Point2D.Float((float) cx(end.x), (float) cy(end.y)));
+      drawing.figures.add(
+          new Drawing.Figure(
+              path, null, dashed, Drawing.Figure.Kind.CONNECTOR, polygonArea(corners)));
     }
   }
 
@@ -564,12 +603,7 @@ final class DiagramParser {
     }
     path.closePath();
     // Sort before integer path rounding; fractional shared edges can change equal-area ties.
-    double renderArea = 0;
-    for (int i = 0; i < renderCorners.size(); i++) {
-      Point2D.Float a = renderCorners.get(i), b = renderCorners.get((i + 1) % renderCorners.size());
-      renderArea += a.x * b.y - b.x * a.y;
-    }
-    region.renderArea = Math.abs(renderArea / 2);
+    region.renderArea = polygonArea(renderCorners);
     Rectangle2D bounds = path.getBounds2D();
     double x = bounds.getX(), y = bounds.getY(), w = bounds.getWidth(), h = bounds.getHeight();
     double skew = cellWidth / 2.0;
@@ -635,6 +669,15 @@ final class DiagramParser {
     }
     path.closePath();
     return path;
+  }
+
+  private static double polygonArea(List<Point2D.Float> corners) {
+    double area = 0;
+    for (int i = 0; i < corners.size(); i++) {
+      Point2D.Float a = corners.get(i), b = corners.get((i + 1) % corners.size());
+      area += a.x * b.y - b.x * a.y;
+    }
+    return Math.abs(area / 2);
   }
 
   private long edge(int x, int y, int nx, int ny) {

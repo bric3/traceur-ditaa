@@ -23,6 +23,37 @@ class SvgEncodingTest {
   }
 
   @Test
+  void textOutsideAnArrowTriangleKeepsBlackForeground() throws Exception {
+    var output = new ByteArrayOutputStream();
+    new DitaaRenderer()
+        .render(" i\n >", new RenderOptions(1, false, true), OutputFormat.SVG, output);
+    Element text =
+        (Element) parse(output.toByteArray()).getElementsByTagNameNS("*", "text").item(0);
+    assertEquals("#000000", text.getAttribute("fill"));
+  }
+
+  @Test
+  void textWhoseLogicalBoundsIntersectAnArrowUsesWhiteForeground() throws Exception {
+    var output = new ByteArrayOutputStream();
+    new DitaaRenderer()
+        .render("^\nText", new RenderOptions(1, false, true), OutputFormat.SVG, output);
+    Element text =
+        (Element) parse(output.toByteArray()).getElementsByTagNameNS("*", "text").item(0);
+    assertEquals("Text", text.getTextContent());
+    assertEquals("#ffffff", text.getAttribute("fill"));
+  }
+
+  @Test
+  void textOutsideAnArrowsLogicalBoundsKeepsBlackForeground() throws Exception {
+    var output = new ByteArrayOutputStream();
+    new DitaaRenderer()
+        .render("^\n\nText", new RenderOptions(1, false, true), OutputFormat.SVG, output);
+    Element text =
+        (Element) parse(output.toByteArray()).getElementsByTagNameNS("*", "text").item(0);
+    assertEquals("#000000", text.getAttribute("fill"));
+  }
+
+  @Test
   void roundedContourStartsAtTheFirstBoundaryCorner() throws Exception {
     var output = new ByteArrayOutputStream();
     new DitaaRenderer()
@@ -74,7 +105,8 @@ class SvgEncodingTest {
     path.quadTo(5.25, 6.5, 7.75, 8.25);
     path.curveTo(9.5, 10.25, 11.75, 12.5, 13.25, 14.75);
     path.closePath();
-    drawing.figures.add(new Drawing.Figure(path, new Color(0x000abc), false, false, true));
+    drawing.figures.add(
+        new Drawing.Figure(path, new Color(0x000abc), false, Drawing.Figure.Kind.REGION, 0));
     var output = new ByteArrayOutputStream();
     SvgWriter.write(drawing, output);
     Element rendered =
@@ -109,8 +141,22 @@ class SvgEncodingTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"000,ffffff", "FFF,000000"})
-  void textContrastsWithItsContainingShape(String background, String foreground) throws Exception {
+  @CsvSource({
+    "000,ffffff",
+    "BBB,ffffff",
+    "CCC,000000",
+    "B00,ffffff",
+    "C00,000000",
+    "0B0,ffffff",
+    "0C0,000000",
+    "00B,ffffff",
+    "00C,000000",
+    "RED,000000",
+    "BLU,ffffff",
+    "FFF,000000"
+  })
+  void textUsesTheReferenceForegroundForShapeColours(String background, String foreground)
+      throws Exception {
     var output = new ByteArrayOutputStream();
     new DitaaRenderer()
         .render(

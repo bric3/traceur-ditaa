@@ -51,7 +51,10 @@ final class SvgWriter {
       svg.append("<path d=\"")
           .append(path)
           .append("\" fill=\"")
-          .append(figure.fill == null || separateFill ? "none" : colour(figure.fill))
+          .append(
+              figure.fill == null
+                  ? (figure.dashed ? "white" : "none")
+                  : separateFill ? "none" : colour(figure.fill))
           .append('"');
       if (figure.dashed) {
         int dash = Math.max(1, (int) (5 * drawing.scale));
@@ -61,7 +64,7 @@ final class SvgWriter {
             .append(dash)
             .append("\" stroke-linecap=\"butt\"");
       }
-      if (!figure.outline) svg.append(" stroke=\"none\"");
+      if (figure.kind == Drawing.Figure.Kind.ARROW) svg.append(" stroke=\"none\"");
       svg.append("/>\n");
     }
     svg.append(
