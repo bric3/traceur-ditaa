@@ -824,40 +824,33 @@ final class DiagramParser {
     Path2D.Double path = new Path2D.Double();
     List<Point2D.Float> renderCorners = new ArrayList<>();
     Collections.reverse(corners.subList(1, corners.size()));
-    boolean clockwise = false;
     // Boundary-cell hash order fixes the first curve and the dash phase.
-    if (corners.stream()
-        .anyMatch(
-            i ->
-                at((int) p.get(i).x, (int) p.get(i).y) == '/'
-                    || at((int) p.get(i).x, (int) p.get(i).y) == '\\')) {
-      int capacity = 16;
-      while (p.size() > capacity * .75) capacity *= 2;
-      int seed = 0, firstBucket = Integer.MAX_VALUE;
-      for (int i = 0; i < p.size(); i++) {
-        Point2D.Double point = p.get(i);
-        int bucket = boundaryBucket(point, capacity);
-        Point2D.Double first = p.get(seed);
-        if (bucket < firstBucket || bucket == firstBucket && point.y < first.y) {
-          seed = i;
-          firstBucket = bucket;
-        }
+    int capacity = 16;
+    while (p.size() > capacity * .75) capacity *= 2;
+    int seed = 0, firstBucket = Integer.MAX_VALUE;
+    for (int i = 0; i < p.size(); i++) {
+      Point2D.Double point = p.get(i);
+      int bucket = boundaryBucket(point, capacity);
+      Point2D.Double first = p.get(seed);
+      if (bucket < firstBucket || bucket == firstBucket && point.y < first.y) {
+        seed = i;
+        firstBucket = bucket;
       }
-      clockwise =
-          boundaryBucket(p.get((seed + 1) % p.size()), capacity)
-              < boundaryBucket(p.get((seed + p.size() - 1) % p.size()), capacity);
-      if (clockwise) Collections.reverse(corners.subList(1, corners.size()));
-      int first = 0, distance = p.size();
-      for (int i = 0; i < corners.size(); i++) {
-        int candidate =
-            ((clockwise ? corners.get(i) - seed : seed - corners.get(i)) + p.size()) % p.size();
-        if (candidate < distance) {
-          first = i;
-          distance = candidate;
-        }
-      }
-      Collections.rotate(corners, -first);
     }
+    boolean clockwise =
+        boundaryBucket(p.get((seed + 1) % p.size()), capacity)
+            < boundaryBucket(p.get((seed + p.size() - 1) % p.size()), capacity);
+    if (clockwise) Collections.reverse(corners.subList(1, corners.size()));
+    int first = 0, distance = p.size();
+    for (int i = 0; i < corners.size(); i++) {
+      int candidate =
+          ((clockwise ? corners.get(i) - seed : seed - corners.get(i)) + p.size()) % p.size();
+      if (candidate < distance) {
+        first = i;
+        distance = candidate;
+      }
+    }
+    Collections.rotate(corners, -first);
     for (int i = 0; i < corners.size(); i++) {
       Point2D.Double previous = p.get(corners.get((i + corners.size() - 1) % corners.size()));
       int pointIndex = corners.get(i);
