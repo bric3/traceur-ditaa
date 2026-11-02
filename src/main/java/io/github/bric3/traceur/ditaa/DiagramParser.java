@@ -267,9 +267,25 @@ final class DiagramParser {
     // An inward branch opens a compartment when its enclosing boundary remains closed.
     regions.removeIf(region -> region.branched && enclosing.containsKey(region.component));
     Map<Integer, Double> covered = new HashMap<>();
-    for (Region region : regions) covered.merge(region.component, region.area, Double::sum);
-    for (Region region : enclosing.values())
-      if (covered.getOrDefault(region.component, 0.0) < region.area) regions.add(region);
+    Map<Integer, Integer> parts = new HashMap<>();
+    for (Region region : regions) {
+      covered.merge(region.component, region.area, Double::sum);
+      parts.merge(region.component, 1, Integer::sum);
+    }
+    List<Region> contours = new ArrayList<>(regions);
+    contours.addAll(enclosing.values());
+    for (Region region : enclosing.values()) {
+      // A contour that revisits a junction keeps its separate regions.
+      boolean nested =
+          parts.getOrDefault(region.component, 0) > 1
+              && new HashSet<>(region.points).size() == region.points.size()
+              && contours.stream()
+                  .anyMatch(
+                      parent ->
+                          parent.component != region.component
+                              && parent.gridPath.contains(region.points.get(0)));
+      if (covered.getOrDefault(region.component, 0.0) < region.area || nested) regions.add(region);
+    }
     for (Region region : regions)
       for (long edge : region.edges) {
         if (!boundary.add(edge)) sharedEdges.add(edge);

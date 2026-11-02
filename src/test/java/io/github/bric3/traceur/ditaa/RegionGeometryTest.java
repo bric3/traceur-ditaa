@@ -4,6 +4,8 @@ package io.github.bric3.traceur.ditaa;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.awt.Color;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -15,6 +17,93 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class RegionGeometryTest {
+  @Test
+  void nestedStacksKeepTheirEnclosingContour() throws IOException {
+    var drawing = DiagramParser.parse(nestedLayout(0), RenderOptions.DEFAULT);
+    assertEquals(4, drawing.figures.size());
+    var bounds =
+        drawing.figures.stream()
+            .filter(figure -> Color.WHITE.equals(figure.fill))
+            .map(figure -> figure.path.getBounds2D())
+            .filter(box -> box.getHeight() == 52)
+            .findFirst()
+            .orElseThrow();
+    assertEquals(47, bounds.getMinX());
+    assertEquals(65, bounds.getMinY());
+    assertEquals(133, bounds.getMaxX());
+    assertEquals(117, bounds.getMaxY());
+  }
+
+  @Test
+  void nestedNeighboursKeepTheirEnclosingContour() throws IOException {
+    var drawing = DiagramParser.parse(nestedLayout(1), RenderOptions.DEFAULT);
+    assertEquals(4, drawing.figures.size());
+    var bounds =
+        drawing.figures.stream()
+            .filter(figure -> Color.WHITE.equals(figure.fill))
+            .map(figure -> figure.path.getBounds2D())
+            .filter(box -> box.getWidth() == 86)
+            .findFirst()
+            .orElseThrow();
+    assertEquals(47, bounds.getMinX());
+    assertEquals(65, bounds.getMinY());
+    assertEquals(133, bounds.getMaxX());
+    assertEquals(89, bounds.getMaxY());
+  }
+
+  @Test
+  void regionsSharingOneCornerKeepSeparateContours() throws IOException {
+    var drawing = DiagramParser.parse(nestedLayout(2), RenderOptions.DEFAULT);
+    assertEquals(3, drawing.figures.size());
+    var boxes =
+        drawing.figures.stream()
+            .filter(figure -> Color.WHITE.equals(figure.fill))
+            .map(figure -> figure.path.getBounds2D())
+            .collect(Collectors.toList());
+    assertEquals(2, boxes.size());
+    assertTrue(boxes.stream().allMatch(box -> box.getWidth() == 40 && box.getHeight() == 28));
+    assertTrue(boxes.stream().anyMatch(box -> box.getMinX() == 45 && box.getMinY() == 63));
+    assertTrue(boxes.stream().anyMatch(box -> box.getMinX() == 85 && box.getMinY() == 91));
+  }
+
+  @Test
+  void aConcaveParentMustContainTheInnerContour() throws IOException {
+    var drawing = DiagramParser.parse(nestedLayout(3), RenderOptions.DEFAULT);
+    assertEquals(3, drawing.figures.size());
+    var boxes =
+        drawing.figures.stream()
+            .filter(figure -> Color.WHITE.equals(figure.fill))
+            .map(figure -> figure.path.getBounds2D())
+            .collect(Collectors.toList());
+    assertEquals(2, boxes.size());
+    assertTrue(boxes.stream().allMatch(box -> box.getMinX() == 115 && box.getWidth() == 40));
+  }
+
+  @Test
+  void anUnnestedStackKeepsItsOriginalOutsideEdges() {
+    var drawing =
+        DiagramParser.parse(
+            "+-------+\n|       |\n+-------+\n|       |\n+-------+", RenderOptions.DEFAULT);
+    assertEquals(2, drawing.figures.size());
+    assertTrue(
+        drawing.figures.stream()
+            .allMatch(
+                figure ->
+                    figure.path.getBounds2D().getMinX() == 25
+                        && figure.path.getBounds2D().getMaxX() == 105));
+  }
+
+  private static String nestedLayout(int index) throws IOException {
+    try (var input =
+        RegionGeometryTest.class.getResourceAsStream("/compatibility/nested-subdivisions.ditaa")) {
+      assertNotNull(input);
+      String[] layouts =
+          new String(input.readAllBytes(), StandardCharsets.UTF_8).stripTrailing().split("\n\n");
+      assertEquals(4, layouts.length);
+      return layouts[index];
+    }
+  }
+
   static Stream<Arguments> inwardStubs() {
     List<Arguments> cases = new ArrayList<>();
     for (int side = 0; side < 4; side++)
