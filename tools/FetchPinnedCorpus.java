@@ -1,6 +1,7 @@
 //usr/bin/env jbang "$0" "$@" ; exit $?
 //JAVA 25
 //SOURCES FetchCorpus.java
+//SOURCES ../src/tools/java/CorpusShard.java
 // SPDX-License-Identifier: MPL-2.0
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -13,7 +14,6 @@ import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.HexFormat;
-import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -21,12 +21,13 @@ import java.util.Set;
  */
 class FetchPinnedCorpus {
   public static void main(String[] args) throws Exception {
-    if (args.length != 2) {
+    if (args.length != 2 && (args.length != 4 || !args[2].equals("--shard"))) {
       throw new IllegalArgumentException(
-          "Usage: jbang tools/FetchPinnedCorpus.java MANIFEST EXTERNAL_CACHE"
+          "Usage: jbang tools/FetchPinnedCorpus.java MANIFEST EXTERNAL_CACHE [--shard INDEX/COUNT]"
       );
     }
     Path inputs = Files.createDirectories(Path.of(args[1]).resolve("inputs"));
+    CorpusShard shard = args.length == 4 ? CorpusShard.parse(args[3]) : null;
     var http = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
     Set<String> seen = new HashSet<>();
     int failures = 0;
@@ -44,18 +45,13 @@ class FetchPinnedCorpus {
         throw new IllegalArgumentException("Invalid provenance row");
       }
       String hash = fields[0], repo = fields[1], revision = fields[2], path = fields[3];
+      if (shard != null && !shard.includes(hash)) {
+        continue;
+      }
       if (!seen.add(hash)) {
         continue;
       }
-      String lower = path.toLowerCase(Locale.ROOT);
-      if (path.startsWith("/")
-          || path.contains("..")
-          || !(lower.endsWith(".ditaa")
-          || lower.endsWith(".txt")
-          || lower.endsWith(".md")
-          || lower.endsWith(".adoc")
-          || lower.endsWith(".puml")
-          || lower.endsWith(".plantuml"))) {
+      if (!CorpusInputs.supported(path)) {
         throw new IllegalArgumentException(
             "Manifest path is not a diagram or documentation file: " + path
         );
@@ -82,9 +78,7 @@ class FetchPinnedCorpus {
           throw new IllegalStateException("HTTP " + response.statusCode());
         }
         byte[] bytes = response.body();
-        boolean raw = lower.endsWith(".ditaa")
-            || lower.endsWith(".txt")
-            && (lower.contains("ditaa") || path.startsWith("test-resources/text/"));
+        boolean raw = CorpusInputs.raw(path);
         if (!raw) {
           var blocks = FetchCorpus.extract(
               new String(bytes, StandardCharsets.UTF_8),

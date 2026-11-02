@@ -28,8 +28,12 @@ public final class CorpusComparison {
   public static void main(String[] args) throws Exception {
     Path corpus = null, oracle = null, svgOracle = null, report = null;
     String rasterizer = "rsvg-convert";
+    CorpusShard shard = null;
     for (int i = 0; i < args.length; i += 2) {
       switch (args[i]) {
+        case "--shard":
+          shard = CorpusShard.parse(args[i + 1]);
+          break;
         case "--corpus":
           corpus = Path.of(args[i + 1]);
           break;
@@ -68,6 +72,18 @@ public final class CorpusComparison {
     }
     if (inputs.isEmpty()) {
       throw new IllegalArgumentException("No .ditaa inputs found");
+    }
+    if (shard != null) {
+      List<Path> selected = new ArrayList<>();
+      for (Path input : inputs) {
+        if (shard.includes(sha256(Files.readAllBytes(input)))) {
+          selected.add(input);
+        }
+      }
+      inputs = selected;
+      if (inputs.isEmpty()) {
+        throw new IllegalArgumentException("No inputs in selected shard");
+      }
     }
     Files.createDirectories(report);
     Files.writeString(
@@ -108,13 +124,14 @@ public final class CorpusComparison {
     String environment = Files.readString(report.resolve("environment.txt"))
         + Files.readString(report.resolve("rasterizer.txt"));
     for (int i = 0; i < inputs.size(); i++) {
+      String inputId = sha256(Files.readAllBytes(inputs.get(i)));
       for (int variant = 0; variant < 4; variant++) {
         for (OutputFormat format : OutputFormat.values()) {
           Path input = inputs.get(i), pngReference = oracle, svgReference = svgOracle;
           Path dir = report.resolve(String.format(
               Locale.ROOT,
-              "%04d-%d-%s",
-              i,
+              "%s-%d-%s",
+              inputId,
               variant,
               format.name().toLowerCase(Locale.ROOT)
           ));

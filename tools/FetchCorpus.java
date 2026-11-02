@@ -1,5 +1,6 @@
 //usr/bin/env jbang "$0" "$@" ; exit $?
 //JAVA 25
+//SOURCES ../src/tools/java/CorpusInputs.java
 // SPDX-License-Identifier: MPL-2.0
 import java.net.URI;
 import java.net.http.*;
@@ -175,35 +176,6 @@ class FetchCorpus {
   }
 
   static List<String> extract(String content, boolean upstreamDocumentation) {
-    List<String> result = new ArrayList<>();
-    Matcher wrapped = Pattern
-      .compile("(?m)^@startditaa([^\\r\\n]*)\\R([\\s\\S]*?)^@endditaa[^\\r\\n]*")
-      .matcher(content);
-    while (wrapped.find()) {
-      result.add(wrapped.group(2));
-    }
-    Matcher fenced =
-        Pattern.compile("(?m)^```([^\\r\\n]*)\\R([\\s\\S]*?)^```[ \\t]*$").matcher(content);
-    while (fenced.find()) {
-      String lang = fenced.group(1).strip(), body = fenced.group(2);
-      if ((lang.equals("ditaa") || upstreamDocumentation && lang.isEmpty())
-          && body.contains("|")
-          && !body.contains("@startditaa")) {
-        result.add(body);
-      }
-    }
-    Matcher adoc = Pattern
-      .compile(
-          "(?m)^\\[ditaa[^\\r"
-          + "\\n"
-          + "]*\\]\\R(?:\\.[^\\r"
-          + "\\n"
-          + "]*\\R)?([- .]{4,})\\R([\\s\\S]*?)^\\1[ \\t]*$"
-      )
-      .matcher(content);
-    while (adoc.find()) {
-      result.add(adoc.group(2));
-    }
-    return result;
+    return CorpusInputs.extract(content, upstreamDocumentation);
   }
 }

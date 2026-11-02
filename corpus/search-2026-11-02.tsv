@@ -1,0 +1,7 @@
+query	limit	results	possiblyTruncated	searchedAt
+extension:ditaa	1000	1000	true	2026-11-02T13:51:30.105926Z
+"[ditaa" extension:adoc	1000	1000	true	2026-11-02T13:54:19.052080Z
+"@startditaa" extension:puml	1000	92	false	2026-11-02T13:55:21.176531Z
+"@startditaa" extension:plantuml	1000	9	false	2026-11-02T13:55:21.834491Z
+"ditaa" extension:md	1000	1000	true	2026-11-02T13:56:36.717106Z
+"begin_src ditaa" extension:org	1000	382	false	2026-11-02T13:57:40.736798Z

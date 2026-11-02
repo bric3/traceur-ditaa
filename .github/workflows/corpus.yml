@@ -1,0 +1,74 @@
+# SPDX-License-Identifier: MPL-2.0
+name: Corpus compatibility
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - name: Checkout tested revision
+        uses: actions/checkout@v6
+
+      - name: Download tested renderer and tools
+        uses: actions/download-artifact@v7
+        with:
+          name: traceur-ditaa-classes
+          path: build/classes/java
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up JBang
+        uses: jbangdev/setup-jbang@v0.1.1
+
+      - name: Install SVG rasteriser
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends librsvg2-bin
+
+      - name: Fetch pinned shard and reference binaries
+        env:
+          CORPUS_SHARD: ${{ matrix.shard }}/4
+        run: |
+          jbang tools/FetchPinnedCorpus.java corpus/manifest.tsv "$RUNNER_TEMP/corpus" --shard "$CORPUS_SHARD"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/plantuml.jar" https://repo.maven.apache.org/maven2/net/sourceforge/plantuml/plantuml/1.2026.8/plantuml-1.2026.8.jar
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/ditaa.jar" https://github.com/stathissideris/ditaa/releases/download/v0.11.0/ditaa-0.11.0-standalone.jar
+          sha256sum --check <<EOF
+          0f77e5f769836b3dee340e207fe497c3e4c43e973d559e3c306915da9c32e34c  $RUNNER_TEMP/plantuml.jar
+          9418aa63ff6d89c5d2318396f59836e120e75bea7a5930c4d34aa10fe7a196a9  $RUNNER_TEMP/ditaa.jar
+          EOF
+
+      - name: Require exact compatibility for this shard
+        env:
+          CORPUS_SHARD: ${{ matrix.shard }}/4
+        run: >-
+          java -Djava.awt.headless=true
+          -cp build/classes/java/main:build/classes/java/tools CorpusComparison
+          --corpus "$RUNNER_TEMP/corpus/inputs"
+          --oracle "$RUNNER_TEMP/plantuml.jar"
+          --svg-oracle "$RUNNER_TEMP/ditaa.jar"
+          --shard "$CORPUS_SHARD"
+          --report build/comparison
+
+      - name: Upload shard results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: compatibility-results-${{ matrix.shard }}
+          path: |
+            build/comparison/results.tsv
+            build/comparison/environment.txt
+          if-no-files-found: error
+          retention-days: 7

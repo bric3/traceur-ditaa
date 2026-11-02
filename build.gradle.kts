@@ -95,6 +95,7 @@ tasks.register<JavaExec>("compareCorpus") {
     providers.gradleProperty("corpus").orNull?.let { args("--corpus", it) }
     providers.gradleProperty("oracle").orNull?.let { args("--oracle", it) }
     providers.gradleProperty("svgOracle").orNull?.let { args("--svg-oracle", it) }
+    providers.gradleProperty("corpusShard").orNull?.let { args("--shard", it) }
     args("--rasterizer", providers.gradleProperty("rasterizer").getOrElse("rsvg-convert"))
     args("--report", layout.buildDirectory.dir("comparison").get().asFile.absolutePath)
 }

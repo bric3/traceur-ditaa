@@ -47,11 +47,6 @@ jobs:
         with:
           validate-wrappers: true
 
-      - name: Install SVG rasteriser
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends librsvg2-bin
-
       - name: Build and test on Java 11 and Java 25
         env:
           JAVA_TOOLCHAIN_PATHS: ${{ steps.java11.outputs.path }},${{ steps.java25.outputs.path }}
@@ -59,23 +54,6 @@ jobs:
 
       - name: Set up JBang
         uses: jbangdev/setup-jbang@v0.1.1
-
-      - name: Fetch pinned compatibility references
-        run: |
-          jbang tools/FetchPinnedCorpus.java corpus/manifest.tsv "$RUNNER_TEMP/traceur-ditaa-corpus"
-          curl --fail --location --retry 3 --output "$RUNNER_TEMP/plantuml.jar" https://repo.maven.apache.org/maven2/net/sourceforge/plantuml/plantuml/1.2026.8/plantuml-1.2026.8.jar
-          curl --fail --location --retry 3 --output "$RUNNER_TEMP/ditaa.jar" https://github.com/stathissideris/ditaa/releases/download/v0.11.0/ditaa-0.11.0-standalone.jar
-          sha256sum --check <<EOF
-          0f77e5f769836b3dee340e207fe497c3e4c43e973d559e3c306915da9c32e34c  $RUNNER_TEMP/plantuml.jar
-          9418aa63ff6d89c5d2318396f59836e120e75bea7a5930c4d34aa10fe7a196a9  $RUNNER_TEMP/ditaa.jar
-          EOF
-
-      - name: Require complete corpus compatibility
-        run: >-
-          ./gradlew compareCorpus
-          -Pcorpus="$RUNNER_TEMP/traceur-ditaa-corpus/inputs"
-          -Poracle="$RUNNER_TEMP/plantuml.jar"
-          -PsvgOracle="$RUNNER_TEMP/ditaa.jar"
 
       - name: Generate line coverage badge
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -93,22 +71,15 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Upload compatibility results
-        if: always()
+      - name: Upload tested renderer and tools
         uses: actions/upload-artifact@v6
         with:
-          name: compatibility-results
+          name: traceur-ditaa-classes
           path: |
-            build/comparison/results.tsv
-            build/comparison/environment.txt
+            build/classes/java/main/
+            build/classes/java/tools/
+          if-no-files-found: error
           retention-days: 7
-
-      - name: Publish snapshot to Central
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
-        run: ./gradlew publishAggregationToCentralSnapshots
 
       - name: Upload JARs
         uses: actions/upload-artifact@v6
@@ -139,8 +110,50 @@ jobs:
             build/test-results/
           retention-days: 7
 
-  coverage:
+  corpus:
     needs: build
+    uses: ./.github/workflows/corpus.yml
+
+  verified:
+    needs: [build, corpus]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require successful build and every corpus shard
+        if: needs.build.result != 'success' || needs.corpus.result != 'success'
+        run: exit 1
+
+  snapshot:
+    needs: verified
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      ORG_GRADLE_PROJECT_snapshot: 'true'
+    steps:
+      - name: Checkout code and tags
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+      - name: Download tested JARs
+        uses: actions/download-artifact@v7
+        with:
+          name: traceur-ditaa-jars
+          path: build/libs
+      - name: Publish tested snapshot to Central
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
+        run: ./gradlew publishAggregationToCentralSnapshots -x jar -x sourcesJar -x javadocJar
+
+  coverage:
+    needs: verified
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -164,7 +177,7 @@ jobs:
           commit-message: 'chore: update coverage badge'
 
   release:
-    needs: build
+    needs: verified
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
