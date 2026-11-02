@@ -23,6 +23,8 @@ configure<SpotlessExtension> {
             lineLength(100)
             javaLanguageLevel(25)
         }
+        // Keep intentional NUL test values readable in source diffs.
+        replace("escape NUL", "\u0000", "\\u0000")
         tableTestFormatter(versions.findVersion("tabletest-formatter").get().requiredVersion)
     }
     kotlin {

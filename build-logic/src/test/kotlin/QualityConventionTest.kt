@@ -13,7 +13,7 @@ class QualityConventionTest {
 
     @Test
     fun `licensing preserves directives copyright and reference fixtures`() {
-        write("settings.gradle.kts", "rootProject.name = \"quality-fixture\"")
+        write("settings.gradle.kts", "rootProject.name = \"quality-fixture\"\ndependencyResolutionManagement { repositories { mavenCentral() } }")
         write("build.gradle.kts", "plugins { id(\"traceur.quality\") }")
         write("gradle/libs.versions.toml", """
             [versions]
@@ -22,7 +22,7 @@ class QualityConventionTest {
         """.trimIndent())
         val directives = "//usr/bin/env jbang \"\$0\" \"\$@\" ; exit \$?\n//JAVA 25\n"
         val copyright = "// Copyright (c) 2025 Brice Dutheil\n"
-        val body = "class Example {}\n"
+        val body = "class Example { String value = \"\\u0000\"; }\n"
         write("tools/Example.java", directives + body)
         write("src/main/java/Example.java", "// SPDX-License-Identifier: Apache-2.0\n" + copyright + body)
         val block = "/* SPDX-License-Identifier: MPL-2.0 */\n" + body
@@ -42,6 +42,11 @@ class QualityConventionTest {
         val second = runner.withArguments("checkLicenses", "--configuration-cache", "--stacktrace").build()
         assertTrue(second.output.contains("Reusing configuration cache."))
         assertEquals(tool, Files.readString(directory.resolve("tools/Example.java")))
+        runner.withArguments("spotlessApply", "--stacktrace").build()
+        val formatted = Files.readString(directory.resolve("tools/Example.java"))
+        assertTrue(formatted.startsWith(directives))
+        assertTrue(formatted.contains("\\u0000"))
+        assertTrue('\u0000' !in formatted)
     }
 
     private fun write(name: String, content: String) {
