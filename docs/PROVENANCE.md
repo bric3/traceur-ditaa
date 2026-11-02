@@ -1,30 +1,40 @@
 # Implementation provenance
 
-The renderer was implemented independently from documentation and black-box
-output comparisons. GPL/LGPL implementation sources were excluded. Reference
-JARs execute in separate processes and are excluded from production dependencies
-and release artifacts. This record has not undergone an independent legal audit.
+## Implementation sources
 
-Behavioural references are the [PlantUML ditaa documentation](https://plantuml.com/ditaa)
-and [ditaa usage documentation](https://github.com/stathissideris/ditaa/blob/master/README.md).
-Project-authored probes measured dimensions, scaling, paths, colours, fonts, and
-shadows. Build version mapping follows MPL-2.0 code from
-[jardiff](https://github.com/bric3/jardiff/blob/0c538e90a0c48571ce84ecf58d819898e5e9f1f4/settings.gradle.kts).
+The renderer was implemented independently from documentation, public binary
+APIs and black-box output comparisons. GPL/LGPL implementation sources and
+decompiled code were excluded. This record has not had an independent legal audit.
 
-The fixtures in `src/test/resources/corpus` and the project-authored fixtures in
-`src/test/resources/compatibility` use MPL-2.0, including generated reference images.
-The seven `blog-*` fixtures were imported from Brice Dutheil's blog at the author's
-request and retain CC-BY-SA-4.0. Their sources, licence and generated images are
-documented in [BLOG-SOURCES.md](../src/test/resources/compatibility/BLOG-SOURCES.md).
-`GenerateReferenceFixtures.java` records the reference checksums and JDK
-versions. Public binary API probes and JDK drawing-call arguments supplement the
-rendered output measurements; implementation sources and decompiled code remain excluded.
+| Reference                                                                                                                     | Use                                                                                |
+| ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| [PlantUML ditaa documentation](https://plantuml.com/ditaa)                                                                    | Rendering behaviour                                                                |
+| [ditaa usage documentation](https://github.com/stathissideris/ditaa/blob/master/README.md)                                    | Syntax and options                                                                 |
+| Project-authored probes                                                                                                       | Dimensions, scaling, paths, colours, fonts, shadows and JDK drawing-call arguments |
+| [jardiff version mapping](https://github.com/bric3/jardiff/blob/0c538e90a0c48571ce84ecf58d819898e5e9f1f4/settings.gradle.kts) | MPL-2.0 build version mapping                                                      |
 
-The versioned corpus manifest contains metadata only. Third-party inputs
-stay in an external cache; comparison copies and images go under ignored `build/`.
+Reference JARs run in separate processes. Production dependencies and release
+artifacts exclude them.
 
-`EXTERNAL_ONLY_CHECK_UPSTREAM_TERMS` records unresolved rights. Before committing
-or distributing an imported input or its output, establish its licence and retain
-the required notices. Generated images can carry restrictions from their inputs;
-see [PlantUML's output policy](https://plantuml.com/faq). Public availability does
-not establish redistribution permission.
+## Fixture licences
+
+| Material                                                     | Licence and record                                                                       |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `src/test/resources/corpus/`                                 | MPL-2.0                                                                                  |
+| Project-authored compatibility fixtures and generated images | MPL-2.0                                                                                  |
+| Seven `blog-*` fixtures and generated images                 | CC-BY-SA-4.0; [sources and notices](../src/test/resources/compatibility/BLOG-SOURCES.md) |
+
+The blog diagrams were imported at the author's request.
+`GenerateReferenceFixtures.java` records reference JAR checksums and JDK versions.
+
+## External corpus
+
+- The versioned manifest stores metadata only.
+- Third-party inputs stay in an external cache.
+- Comparison copies and images stay under ignored `build/`.
+- `EXTERNAL_ONLY_CHECK_UPSTREAM_TERMS` marks unresolved redistribution rights.
+
+Before committing or distributing an imported input or its output, establish its
+licence and retain required notices. Generated images can inherit input restrictions;
+see [PlantUML's output policy](https://plantuml.com/faq).
+Public availability alone does not establish redistribution permission.

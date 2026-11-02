@@ -7,8 +7,10 @@ import java.io.Reader;
 import java.util.Objects;
 
 /**
- * Renders raw ditaa text. PlantUML preprocessing and start/end directives belong to the caller.
- * Instances are stateless and thread-safe. The caller owns input and output resources.
+ * Renders raw ditaa text as PNG or vector SVG. Instances are stateless and thread-safe.
+ *
+ * <p>The caller handles PlantUML preprocessing and start/end directives, and owns input and output
+ * resources.
  */
 public final class DitaaRenderer {
   /**
@@ -38,10 +40,14 @@ public final class DitaaRenderer {
   }
 
   /**
-   * Reads a diagram to EOF and renders it. Input is limited to 1,000,000 UTF-16 code units and is
-   * validated before writing. The caller owns buffering and input decoding, for example through an
-   * {@link java.io.InputStreamReader}. Rendering never closes the reader or flushes or closes the
-   * destination.
+   * Reads a diagram to EOF, validates it, then renders it.
+   *
+   * <ul>
+   * <li>Input is limited to 1,000,000 UTF-16 code units.
+   * <li>The caller controls buffering and decoding, for example with an
+   * {@link java.io.InputStreamReader}.
+   * <li>Rendering leaves the reader open and the destination open and unflushed.
+   * </ul>
    *
    * @param input raw diagram characters, with whitespace preserved
    * @param options scale, shadow, and shared-edge separation settings

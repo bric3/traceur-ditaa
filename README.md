@@ -4,13 +4,11 @@
 [![Build](https://github.com/bric3/traceur-ditaa/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bric3/traceur-ditaa/actions/workflows/ci.yml)
 [![Line coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fbric3%2Ftraceur-ditaa%2Fbadges%2Fcoverage.json)](https://github.com/bric3/traceur-ditaa/actions/workflows/ci.yml?query=branch%3Amain)
 
-An independently implemented Java 11 library for rendering ditaa text as PNG
-and vector SVG, with no third-party runtime dependencies. Rendering is checked
-against ditaa and PlantUML reference images; compatibility covers the tested
-diagrams and options.
+A ditaa-compatible Java 11 renderer for PNG and vector SVG.
+Independently implemented, with no third-party runtime dependencies.
 
-Maven coordinates: `io.github.bric3.traceur:traceur-ditaa`. Use
-[Central's snapshot repository](https://central.sonatype.com/repository/maven-snapshots/)
+Maven coordinates: `io.github.bric3.traceur:traceur-ditaa`.
+Use [Central's snapshot repository](https://central.sonatype.com/repository/maven-snapshots/)
 for `-SNAPSHOT` versions.
 
 ## Usage
@@ -31,26 +29,31 @@ try (var output = Files.newOutputStream(Path.of("box.svg"))) {
 }
 ```
 
-Pass raw diagram text. The caller handles PlantUML preprocessing and
-`@startditaa`/`@endditaa`. Input can be a `String` or `Reader`; use an
-`InputStreamReader` to choose input decoding. The caller owns buffering, flushing
-and closing. `RenderOptions` controls
-scale, shadows, and shared-edge separation; defaults are `1`, `true`, and `true`.
-Use `RenderTarget.png(OutputStream)` for raster output. SVG targets accept an
-`OutputStream` (UTF-8) or `Writer`. Renderer instances are thread-safe.
+`render` accepts a `String` or `Reader`. Use `InputStreamReader` to choose byte decoding.
+Pass raw diagram text; the caller handles PlantUML preprocessing and
+`@startditaa`/`@endditaa` directives.
 
-The library requires the JDK's `java.base` and `java.desktop` modules. There is no
-public CLI or binary compatibility with ditaa's Java classes.
+| Target                     | Destination    | Encoding                     |
+| -------------------------- | -------------- | ---------------------------- |
+| `RenderTarget.png(output)` | `OutputStream` | PNG                          |
+| `RenderTarget.svg(output)` | `OutputStream` | UTF-8 SVG                    |
+| `RenderTarget.svg(writer)` | `Writer`       | Caller-selected SVG encoding |
+
+`RenderOptions.DEFAULT` uses scale `1`, shadows enabled and shared-edge separation enabled.
+Renderer instances are thread-safe. The caller owns buffering, flushing and closing.
+
+Runtime modules: `java.base` and `java.desktop`.
+See [rendering contracts and limits](docs/COMPATIBILITY.md#rendering-api).
 
 ## Build
 
-Build from a Git checkout with tags, using Java 25 and an installed Java 11 toolchain:
+Use a Git checkout with tags, Java 25 and an installed Java 11 toolchain:
 
 ```sh
 ./gradlew build
 ```
 
-JARs are written to `build/libs/`. See [CONTRIBUTING.md](CONTRIBUTING.md) for
-development, testing and publishing.
+JARs: `build/libs/`.
+Development, testing and publishing: [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Licensed under [MPL-2.0](LICENSE).
+Licence: [MPL-2.0](LICENSE).

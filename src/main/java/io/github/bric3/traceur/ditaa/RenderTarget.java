@@ -7,8 +7,10 @@ import java.io.Writer;
 import java.util.Objects;
 
 /**
- * An image encoding and its destination. The caller owns buffering, flushing, closing and concurrent
- * access to the destination. Rendering writes the complete image without flushing or closing it.
+ * An image encoding and destination.
+ *
+ * <p>The caller controls buffering, flushing, closing and concurrent access. Rendering writes the
+ * complete image and leaves the destination open and unflushed.
  */
 public abstract class RenderTarget {
   private RenderTarget() {

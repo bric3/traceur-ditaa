@@ -14,7 +14,7 @@ import javax.imageio.ImageIO;
 import javax.tools.ToolProvider;
 
 /**
- * Generates golden images from fixture inputs using the isolated reference binary.
+ * Generates PNG and SVG fixtures with isolated reference JARs.
  */
 class GenerateReferenceFixtures {
   record Options(double scale, boolean shadows, boolean separation) {}
