@@ -149,9 +149,7 @@ final class DiagramParser {
         return arrowDirections(x, y);
       case 'v':
       case 'V':
-        return Character.isLetterOrDigit(at(x - 1, y)) || Character.isLetterOrDigit(at(x + 1, y))
-            ? 0
-            : arrowDirections(x, y);
+        return "|:".indexOf(at(x, y - 1)) >= 0 ? arrowDirections(x, y) : 0;
       default:
         return 0;
     }
@@ -167,6 +165,7 @@ final class DiagramParser {
 
   private void build(Drawing drawing) {
     Drawing.Figure[][] arrowCells = new Drawing.Figure[height][width];
+    Map<Integer, Character> inlineLabels = new HashMap<>(), lineTypes = new HashMap<>();
     for (int y = 0; y < height; y++)
       for (int x = 0; x + 2 < width; x++) {
         char marker = at(x, y);
@@ -178,6 +177,19 @@ final class DiagramParser {
           grid[y][x + 1] = '\u2022';
         }
       }
+    // Read the original neighbours before replacing single letters embedded in lines.
+    for (int y = 0; y < height; y++)
+      for (int x = 0; x < width; x++) {
+        char c = at(x, y);
+        if (!Character.isLetterOrDigit(c)) continue;
+        boolean horizontal = "-=".indexOf(at(x - 1, y)) >= 0 && "-=".indexOf(at(x + 1, y)) >= 0;
+        boolean vertical = "|:".indexOf(at(x, y - 1)) >= 0 && "|:".indexOf(at(x, y + 1)) >= 0;
+        if (!horizontal && !vertical) continue;
+        int cell = y * width + x;
+        lineTypes.put(cell, horizontal && vertical ? '+' : vertical ? '|' : '-');
+        if ("vV".indexOf(c) < 0 || "|:".indexOf(at(x, y - 1)) < 0) inlineLabels.put(cell, c);
+      }
+    lineTypes.forEach((cell, type) -> grid[cell / width][cell % width] = type);
     for (int y = 0; y < height; y++)
       for (int x = 0; x < width; x++) {
         for (int d = 0; d < 4; d++) {
@@ -380,6 +392,7 @@ final class DiagramParser {
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) if (consumed[y][x]) grid[y][x] = ' ';
     }
+    inlineLabels.forEach((cell, label) -> grid[cell / width][cell % width] = label);
     int[][] groups = textGroups();
     Map<Long, Integer> starts = new HashMap<>(), ends = new HashMap<>();
     for (int y = 0; y < height; y++)
@@ -428,7 +441,16 @@ final class DiagramParser {
                 cellWidth,
                 drawing.font,
                 alignment);
-        if (intersectsArrow(positioned.bounds(), arrowCells)) positioned.colour = Color.WHITE;
+        Rectangle2D textBounds = positioned.bounds();
+        if (intersectsArrow(textBounds, arrowCells)) positioned.colour = Color.WHITE;
+        // Open connectors select text foreground after filled shapes and arrowheads.
+        if (positioned.colour.equals(Color.WHITE))
+          for (Drawing.Figure figure : drawing.figures)
+            if (figure.kind == Drawing.Figure.Kind.CONNECTOR
+                && figure.path.intersects(textBounds)) {
+              positioned.colour = Color.BLACK;
+              break;
+            }
         drawing.labels.add(positioned);
       }
     }

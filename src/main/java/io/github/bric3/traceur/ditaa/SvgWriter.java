@@ -40,9 +40,7 @@ final class SvgWriter {
     for (Drawing.Figure figure : drawing.figures) {
       figure(svg, figure, drawing.scale);
     }
-    svg.append(
-        "<g stroke=\"none\" font-family=\"Courier\" font-size=\"15\""
-            + " xml:space=\"preserve\">\n");
+    svg.append("<g stroke=\"none\" font-family=\"Courier\" font-size=\"15\">\n");
     for (Drawing.Label label : drawing.labels) {
       svg.append("<text x=\"")
           .append(number(label.x))

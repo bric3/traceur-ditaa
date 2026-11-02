@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<svg 
+    xmlns='http://www.w3.org/2000/svg'
+    width='273'
+    height='108'
+    shape-rendering='geometricPrecision'
+    version='1.0'>
+  <defs>
+    <filter id='f2' x='0' y='0' width='200%' height='200%'>
+      <feOffset result='offOut' in='SourceGraphic' dx='5' dy='5' />
+      <feGaussianBlur result='blurOut' in='offOut' stdDeviation='3' />
+      <feBlend in='SourceGraphic' in2='blurOut' mode='normal' />
+    </filter>
+  </defs>
+  <g stroke-width='1' stroke-linecap='square' stroke-linejoin='round'>
+    <rect x='0' y='0' width='273' height='108' style='fill: #ffffff'/>
+    <path stroke='gray' fill='gray' filter='url(#f2)' d='M234.0 40.0 L234.0 58.0 L192.0 58.0 L192.0 40.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M234.0 40.0 L234.0 58.0 L192.0 58.0 L192.0 40.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M101.0 27.0 L98.0 36.0 L105.0 36.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M140.0 27.0 L143.0 36.0 L147.0 27.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M147.0 27.0 L150.0 36.0 L154.0 27.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M210.0 27.0 L213.0 36.0 L217.0 27.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M21.0 81.0 L24.0 90.0 L28.0 81.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M91.0 81.0 L94.0 90.0 L98.0 81.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M24.0 72.0 L24.0 85.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M101.0 18.0 L101.0 31.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M101.0 31.0 L101.0 44.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M94.0 72.0 L94.0 85.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M143.0 18.0 L143.0 31.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M150.0 18.0 L150.0 31.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M213.0 18.0 L213.0 31.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M255.0 27.0 L255.0 35.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M17.0 22.0 L17.0 40.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M59.0 22.0 L59.0 40.0 ' />
+    <text x='255' y='26' font-family='Courier' font-size='9' stroke='none' fill='#000000' ><![CDATA[v ]]></text>
+    <text x='17' y='89' font-family='Courier' font-size='9' stroke='none' fill='#000000' ><![CDATA[a b]]></text>
+  </g>
+</svg>
