@@ -693,11 +693,12 @@ final class DiagramParser {
         path.lineTo(x - skew, y + h);
         break;
       case "d":
+        int wave = (int) (h / 8);
         path.moveTo(x, y);
         path.lineTo(x + w, y);
         path.lineTo(x + w, y + h);
-        path.quadTo(x + w / 2 + (int) (w / 6), y + h - cellHeight / 2, x + w / 2, y + h);
-        path.quadTo(x + w / 2 - (int) (w / 6), y + h + cellHeight / 2, x, y + h);
+        path.quadTo(x + w / 2 + (int) (w / 6), y + h - wave, x + w / 2, y + h);
+        path.quadTo(x + w / 2 - (int) (w / 6), y + h + wave, x, y + h);
         break;
       case "s":
         path.moveTo(x, y);
