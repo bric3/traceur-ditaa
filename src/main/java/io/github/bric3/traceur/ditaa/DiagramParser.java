@@ -440,16 +440,6 @@ final class DiagramParser {
         while (x < width && !(at(x, y) == ' ' && at(x + 1, y) == ' ')) x++;
         String label = new String(grid[y], start, x - start).stripTrailing();
         if (label.length() == 1 && at(x, y) == ' ') label += " ";
-        Color colour = Color.BLACK;
-        for (Region region : regions)
-          if (region.gridPath.contains(start, y)) {
-            Color bg = region.colour;
-            // The reference uses the brightest RGB channel for text foreground.
-            colour =
-                Math.max(bg.getRed(), Math.max(bg.getGreen(), bg.getBlue())) < 200
-                    ? Color.WHITE
-                    : Color.BLACK;
-          }
         int end = start + label.length() - 1;
         long group = (long) groups[y][start] << 32;
         int otherStarts = starts.getOrDefault(group | start, 0) - 1;
@@ -465,11 +455,20 @@ final class DiagramParser {
                 label,
                 (start + 2) * cellWidth,
                 (y + 2.5) * cellHeight,
-                colour,
+                Color.BLACK,
                 cellWidth,
                 drawing.font,
                 alignment);
         Rectangle2D textBounds = positioned.bounds();
+        for (Region region : regions)
+          if (region.textBackground.intersects(textBounds)) {
+            Color bg = region.colour;
+            // The reference uses the brightest RGB channel for text foreground.
+            positioned.colour =
+                Math.max(bg.getRed(), Math.max(bg.getGreen(), bg.getBlue())) < 200
+                    ? Color.WHITE
+                    : Color.BLACK;
+          }
         if (intersectsArrow(textBounds, arrowCells)) positioned.colour = Color.WHITE;
         // Open connectors select text foreground after filled shapes and arrowheads.
         if (positioned.colour.equals(Color.WHITE))
@@ -884,6 +883,9 @@ final class DiagramParser {
         }
       }
       renderCorners.add(new Point2D.Float((float) x, (float) y));
+      // Text contrast uses the boundary polygon before corner and shape transforms.
+      if (i == 0) region.textBackground.moveTo(x, y);
+      else region.textBackground.lineTo(x, y);
       x = (int) x;
       y = (int) y;
       boolean rounded =
@@ -909,6 +911,7 @@ final class DiagramParser {
             next.y == point.y ? y : cy(point.y) + cellBoundaryOffset(next.y - point.y, cellHeight));
     }
     path.closePath();
+    region.textBackground.closePath();
     // Sort before integer path rounding; fractional shared edges can change equal-area ties.
     region.renderArea = polygonArea(renderCorners);
     Rectangle2D bounds = path.getBounds2D();
@@ -1064,6 +1067,7 @@ final class DiagramParser {
   private static final class Region {
     final List<Point2D.Double> points;
     final Path2D.Double gridPath = new Path2D.Double();
+    final Path2D.Float textBackground = new Path2D.Float();
     final double area;
     final boolean dashed;
     final int component;

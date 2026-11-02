@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.awt.Color;
 import java.awt.font.FontRenderContext;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -128,5 +130,21 @@ class TextLayoutTest {
     var label = drawing.labels.get(1);
     assertEquals("3 ", label.text);
     assertEquals(70, label.x + width(label) / 2, .5);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"0, true", "1, false", "2, true", "3, false"})
+  void textContrastUsesLabelBoundsAgainstTheBoundaryPolygon(int layout, boolean white)
+      throws IOException {
+    try (var input = getClass().getResourceAsStream("/compatibility/text-backgrounds.ditaa")) {
+      assertNotNull(input);
+      String[] layouts =
+          new String(input.readAllBytes(), StandardCharsets.UTF_8).stripTrailing().split("\n\n");
+      assertEquals(4, layouts.length);
+      var drawing = DiagramParser.parse(layouts[layout], RenderOptions.DEFAULT);
+      assertEquals(1, drawing.labels.size());
+      assertEquals("X", drawing.labels.get(0).text.stripTrailing());
+      assertEquals(white ? Color.WHITE : Color.BLACK, drawing.labels.get(0).colour);
+    }
   }
 }
