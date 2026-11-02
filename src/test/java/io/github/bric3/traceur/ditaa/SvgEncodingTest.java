@@ -126,7 +126,7 @@ class SvgEncodingTest {
     String text = "café 日本語 😀 <A & B> \"quoted\" 'apostrophe'";
     var drawing = new Drawing(400, 80, new RenderOptions(1, false, true));
     drawing.labels.add(
-        new Drawing.Label(text, 20, 35, Color.BLACK, 10, drawing.font, Drawing.TextAlignment.LEFT));
+        new Drawing.Label(text, 20, 35, Color.BLACK, 10, drawing.font(), Drawing.TextAlignment.LEFT));
     var output = new ByteArrayOutputStream();
     SvgWriter.write(drawing, output);
     Document document = parse(output.toByteArray());

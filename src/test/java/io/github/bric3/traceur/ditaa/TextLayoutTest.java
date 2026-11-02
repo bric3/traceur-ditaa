@@ -32,7 +32,7 @@ class TextLayoutTest {
     assertEquals(height, drawing.cellHeight);
     assertEquals(
         System.getProperty("os.name").equals("Linux") ? linuxSize : macSize,
-        drawing.font.getSize2D());
+        drawing.font().getSize2D());
   }
 
   @ParameterizedTest

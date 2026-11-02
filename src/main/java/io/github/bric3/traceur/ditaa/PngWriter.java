@@ -52,10 +52,11 @@ final class PngWriter {
       graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
       graphics.setRenderingHint(
           RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+      BasicStroke solid = null;
+      BasicStroke dashed = null;
       for (Drawing.Figure figure : drawing.figures) {
-        graphics.setStroke(
-            figure.dashed
-                ? new BasicStroke(
+        if (figure.dashed) {
+          if (dashed == null) dashed = new BasicStroke(
                     (float) drawing.scale,
                     BasicStroke.CAP_BUTT,
                     BasicStroke.JOIN_ROUND,
@@ -63,9 +64,13 @@ final class PngWriter {
                     new float[] {
                       Math.max(1, (int) (5 * drawing.scale)), Math.max(1, (int) (5 * drawing.scale))
                     },
-                    0)
-                : new BasicStroke(
-                    (float) drawing.scale, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                    0);
+          graphics.setStroke(dashed);
+        } else {
+          if (solid == null) solid = new BasicStroke(
+                    (float) drawing.scale, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
+          graphics.setStroke(solid);
+        }
         if (figure.fill != null && !figure.dashed) {
           graphics.setColor(figure.fill);
           graphics.fill(figure.path);

@@ -88,7 +88,7 @@ class TextSyntaxTest {
   void wideTextFitsItsCharacterCells() {
     var drawing = DiagramParser.parse("WWWWWW", RenderOptions.DEFAULT);
     Drawing.Label label = drawing.labels.get(0);
-    assertTrue(label.font.getSize2D() < drawing.font.getSize2D());
+    assertTrue(label.font.getSize2D() < drawing.font().getSize2D());
     assertEquals(Math.floor(label.font.getSize2D()), label.font.getSize2D());
     assertTrue(
         label

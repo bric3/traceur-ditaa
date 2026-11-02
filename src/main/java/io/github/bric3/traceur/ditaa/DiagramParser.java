@@ -209,7 +209,7 @@ final class DiagramParser {
     removePlusEnds();
     int[][] regionLinks = regionLinks();
     // A half-edge walk keeps the bounded regions separate when boxes share boundaries.
-    boolean[][][] visited = new boolean[height][width][4];
+    byte[][] visited = new byte[height][width];
     List<Region> regions = new ArrayList<>();
     Map<Integer, Region> enclosing = new HashMap<>();
     Set<Integer> trimmedExteriors = new HashSet<>(), openedExteriors = new HashSet<>();
@@ -222,12 +222,12 @@ final class DiagramParser {
     for (int y = 0; y < height; y++)
       for (int x = 0; x < width; x++) {
         for (int d = 0; d < 4; d++) {
-          if ((regionLinks[y][x] & (1 << d)) == 0 || visited[y][x][d]) continue;
+          if ((regionLinks[y][x] & (1 << d)) == 0 || (visited[y][x] & (1 << d)) != 0) continue;
           List<Point2D.Double> points = new ArrayList<>();
           List<Long> edges = new ArrayList<>();
           int px = x, py = y, direction = d;
           do {
-            visited[py][px][direction] = true;
+            visited[py][px] |= 1 << direction;
             points.add(new Point2D.Double(px, py));
             int nx = px + DX[direction], ny = py + DY[direction];
             edges.add(edge(px, py, nx, ny));
@@ -571,7 +571,7 @@ final class DiagramParser {
                 (y + 2.5) * cellHeight,
                 Color.BLACK,
                 cellWidth,
-                drawing.font,
+                drawing.font(),
                 alignment);
         Rectangle2D textBounds = positioned.bounds();
         // Text follows paint order so a later fill can cover an open frame.

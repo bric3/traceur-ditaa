@@ -25,7 +25,7 @@ final class Drawing {
   final double scale;
   final int cellWidth;
   final int cellHeight;
-  final Font font;
+  private Font font;
   final boolean shadows;
   final List<Figure> figures = new ArrayList<>();
   final List<Figure> shadowFigures = new ArrayList<>();
@@ -37,8 +37,12 @@ final class Drawing {
     this.scale = options.scale();
     this.cellWidth = (int) (10 * options.scale());
     this.cellHeight = (int) (14 * options.scale());
-    this.font = fontFor(cellHeight);
     this.shadows = options.shadows();
+  }
+
+  Font font() {
+    if (font == null) font = fontFor(cellHeight);
+    return font;
   }
 
   private static Font fontFor(int height) {
@@ -92,6 +96,7 @@ final class Drawing {
     final String text;
     final double x;
     final double y;
+    private final Rectangle2D textBounds;
     Color colour;
 
     Label(
@@ -105,10 +110,14 @@ final class Drawing {
       this.text = text;
       int available = text.length() * cellWidth;
       Font fitted = baseFont;
-      if (fitted.getStringBounds(text, FONT_CONTEXT).getWidth() > available)
+      Rectangle2D bounds = fitted.getStringBounds(text, FONT_CONTEXT);
+      if (bounds.getWidth() > available) {
         fitted = fontForWidth(text, available);
+        bounds = fitted.getStringBounds(text, FONT_CONTEXT);
+      }
       this.font = fitted;
-      double actualWidth = font.getStringBounds(text, FONT_CONTEXT).getWidth();
+      this.textBounds = bounds;
+      double actualWidth = bounds.getWidth();
       double padding = available - actualWidth;
       this.x =
           x
@@ -143,9 +152,8 @@ final class Drawing {
     }
 
     Rectangle2D bounds() {
-      Rectangle2D bounds = font.getStringBounds(text, FONT_CONTEXT);
       return new Rectangle2D.Double(
-          x + bounds.getX(), y + bounds.getY(), bounds.getWidth(), bounds.getHeight());
+          x + textBounds.getX(), y + textBounds.getY(), textBounds.getWidth(), textBounds.getHeight());
     }
   }
 }

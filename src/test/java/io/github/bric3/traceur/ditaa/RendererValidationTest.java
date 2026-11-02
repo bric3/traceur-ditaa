@@ -23,6 +23,18 @@ class RendererValidationTest {
   private final DitaaRenderer renderer = new DitaaRenderer();
 
   @Test
+  void aBlankGridAtTheCellLimitRendersWithoutLabelsOrPaths() throws Exception {
+    var output = new ByteArrayOutputStream();
+    ImageSize size = renderer.render((" ".repeat(500) + "\n").repeat(500),
+        new RenderOptions(.2, false, true), OutputFormat.SVG, output);
+    assertEquals(1008, size.width());
+    assertEquals(1008, size.height());
+    var document = SvgEncodingTest.parse(output.toByteArray());
+    assertEquals(0, document.getElementsByTagNameNS("*", "path").getLength());
+    assertEquals(0, document.getElementsByTagNameNS("*", "text").getLength());
+  }
+
+  @Test
   void nullArgumentsAreRejectedBeforeWriting() {
     var output = new ByteArrayOutputStream();
     assertThrows(

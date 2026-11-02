@@ -11,6 +11,8 @@ import java.nio.charset.StandardCharsets;
 final class SvgWriter {
   static void write(Drawing drawing, OutputStream output) throws IOException {
     StringBuilder svg = new StringBuilder();
+    StringBuilder pathData = new StringBuilder();
+    double[] coords = new double[6];
     svg.append("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"")
         .append(drawing.width)
         .append("\" height=\"")
@@ -32,13 +34,13 @@ final class SvgWriter {
     for (Drawing.Figure figure : drawing.figures) {
       if (drawing.shadows && figure.shadow)
         svg.append("<path d=\"")
-            .append(path(figure.path))
+            .append(path(figure.path, pathData, coords))
             .append(
                 "\" fill=\"gray\" stroke=\"gray\" stroke-width=\"1\" stroke-linecap=\"square\""
                     + " filter=\"url(#shadow)\"/>\n");
     }
     for (Drawing.Figure figure : drawing.figures) {
-      figure(svg, figure, drawing.scale);
+      figure(svg, figure, drawing.scale, pathData, coords);
     }
     svg.append("<g stroke=\"none\" font-family=\"Courier\" font-size=\"15\">\n");
     for (Drawing.Label label : drawing.labels) {
@@ -58,8 +60,9 @@ final class SvgWriter {
     output.write(svg.toString().getBytes(StandardCharsets.UTF_8));
   }
 
-  private static void figure(StringBuilder svg, Drawing.Figure figure, double scale) {
-    String path = path(figure.path);
+  private static void figure(StringBuilder svg, Drawing.Figure figure, double scale,
+      StringBuilder pathData, double[] coords) {
+    CharSequence path = path(figure.path, pathData, coords);
     boolean separateFill = figure.kind == Drawing.Figure.Kind.STORAGE;
     if (separateFill) {
       svg.append("<path d=\"")
@@ -92,9 +95,8 @@ final class SvgWriter {
         .append("\" stroke-linecap=\"butt\"");
   }
 
-  private static String path(Shape shape) {
-    StringBuilder result = new StringBuilder();
-    double[] coords = new double[6];
+  private static CharSequence path(Shape shape, StringBuilder result, double[] coords) {
+    result.setLength(0);
     for (PathIterator it = shape.getPathIterator(null); !it.isDone(); it.next()) {
       int type = it.currentSegment(coords);
       int count;
@@ -124,7 +126,7 @@ final class SvgWriter {
       }
       for (int i = 0; i < count; i++) result.append(i == 0 ? "" : " ").append(number(coords[i]));
     }
-    return result.toString();
+    return result;
   }
 
   private static String colour(Color colour) {
