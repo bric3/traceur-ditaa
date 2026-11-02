@@ -105,7 +105,8 @@ Publish the corresponding public key to a
 [Central-supported keyserver](https://central.sonatype.org/publish/requirements/gpg/#distributing-your-public-key).
 Snapshots can publish without signing credentials. Prereleases and final releases
 require signing credentials. Central releases publish automatically after validation.
-Push `main` and the existing `v0.0.1` tag after configuring the secrets.
+Push the tested `main` branch after configuring the secrets. Create a release tag
+from the tested commit when publishing a prerelease or final release.
 
 For local publishing, supply the Gradle properties `mavenCentralUsername`,
 `mavenCentralPassword`, `signingKey` and `signingPassword` in your user

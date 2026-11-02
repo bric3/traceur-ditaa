@@ -306,6 +306,19 @@ final class DiagramParser {
           }
         }
       }
+    // The reference discards wholly mixed components once it finds a closed contour.
+    Set<Integer> closedComponents = new HashSet<>();
+    for (Region region : regions) if (!region.branched) closedComponents.add(region.component);
+    for (Region region : enclosing.values())
+      if (!region.branched) closedComponents.add(region.component);
+    Set<Integer> discardedComponents = new HashSet<>();
+    Set<Integer> detachedArrows = new HashSet<>();
+    if (!closedComponents.isEmpty())
+      for (Region region : regions)
+        if (!closedComponents.contains(region.component)) discardedComponents.add(region.component);
+    regions.removeIf(region -> discardedComponents.contains(region.component));
+    enclosing.keySet().removeAll(discardedComponents);
+
     // An inward branch opens a compartment when its enclosing boundary remains closed.
     // Each opened side still paints an outline when the opposite side stays closed.
     Set<Long> supplementalConnectorEdges = new HashSet<>();
@@ -379,6 +392,20 @@ final class DiagramParser {
         if (!boundary.add(edge)) sharedEdges.add(edge);
       }
     orderRegions(regions, components);
+    for (int y = 0; y < height; y++)
+      for (int x = 0; x < width; x++) {
+        if (!discardedComponents.contains(components[y][x])) continue;
+        if (at(x, y) == '*') addMarker(x, y, drawing);
+        for (int direction = 0; direction < 4; direction++)
+          if ((links[y][x] & (1 << direction)) != 0) {
+            int nx = x + DX[direction], ny = y + DY[direction];
+            if (at(nx, ny) == 'v' || at(nx, ny) == 'V') detachedArrows.add(ny * width + nx);
+            links[ny][nx] &= ~(1 << ((direction + 2) % 4));
+          }
+        links[y][x] = 0;
+        grid[y][x] = ' ';
+        consumed[y][x] = true;
+      }
     List<Region> shadowOrder = new ArrayList<>(regions);
     Map<Drawing.Figure, Shape> textBackgrounds = new HashMap<>();
     regions.sort(Comparator.comparingDouble((Region r) -> r.area).reversed());
@@ -430,7 +457,9 @@ final class DiagramParser {
         connectors(x, y, boundary, drawn, drawing);
         char c = at(x, y);
         boolean arrowCharacter =
-            "<>^".indexOf(c) >= 0 || (c == 'v' || c == 'V') && links[y][x] != 0;
+            "<>^".indexOf(c) >= 0
+                || (c == 'v' || c == 'V')
+                    && (links[y][x] != 0 || detachedArrows.contains(y * width + x));
         boolean loneLine = "-=|:".indexOf(c) >= 0;
         if (links[y][x] == 0 && !arrowCharacter && !loneLine && c != '*') continue;
         consumed[y][x] = true;
@@ -473,17 +502,7 @@ final class DiagramParser {
           drawing.figures.add(arrowFigure);
         } else if (c == '*') {
           if (links[y][x] != 0) {
-            drawing.figures.add(
-                new Drawing.Figure(
-                    new Ellipse2D.Double(
-                        cx(x) - cellWidth * .35,
-                        cy(y) - cellWidth * .35,
-                        cellWidth * .7,
-                        cellWidth * .7),
-                    Color.WHITE,
-                    false,
-                    Drawing.Figure.Kind.MARKER,
-                    0));
+            addMarker(x, y, drawing);
           }
         } else if (links[y][x] == 0 && (c == '-' || c == '|')) {
           Path2D.Double path = new Path2D.Double();
@@ -569,6 +588,17 @@ final class DiagramParser {
         drawing.labels.add(positioned);
       }
     }
+  }
+
+  private void addMarker(int x, int y, Drawing drawing) {
+    drawing.figures.add(
+        new Drawing.Figure(
+            new Ellipse2D.Double(
+                cx(x) - cellWidth * .35, cy(y) - cellWidth * .35, cellWidth * .7, cellWidth * .7),
+            Color.WHITE,
+            false,
+            Drawing.Figure.Kind.MARKER,
+            0));
   }
 
   private int[][] regionLinks() {
