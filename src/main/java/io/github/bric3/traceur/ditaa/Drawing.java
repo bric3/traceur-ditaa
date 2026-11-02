@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MPL-2.0 */
 package io.github.bric3.traceur.ditaa;
 
+import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Shape;
@@ -35,14 +36,28 @@ final class Drawing {
     this.scale = options.scale();
     this.cellWidth = (int) (10 * options.scale());
     this.cellHeight = (int) (14 * options.scale());
-    if (cellHeight < 12) {
-      this.font = FONT.deriveFont((float) Math.max(1, cellHeight - 1));
-    } else {
-      double ascentPerPoint = FONT.getLineMetrics("Z", FONT_CONTEXT).getAscent() / FONT.getSize2D();
-      float size = (float) (Math.floor((cellHeight + .5) / ascentPerPoint * 2) / 2);
-      this.font = FONT.deriveFont(size);
-    }
+    this.font = fontFor(cellHeight);
     this.shadows = options.shadows();
+  }
+
+  private static Font fontFor(int height) {
+    // A 12-pixel cell retains the reference's 12.5-point default.
+    if (height == 12) return FONT.deriveFont(12.5f);
+    var canvas = new Canvas();
+    // Small cells leave one ascent pixel free; larger cells use the full height.
+    int limit = height < 12 ? height - 1 : height;
+    double ascentPerPoint = FONT.getLineMetrics("Z", FONT_CONTEXT).getAscent() / FONT.getSize2D();
+    float size = Math.max(1, (float) Math.floor(height / ascentPerPoint * 2) / 2);
+    Font font = FONT.deriveFont(size);
+    while (size > 1 && canvas.getFontMetrics(font).getAscent() > limit) {
+      size -= .5f;
+      font = FONT.deriveFont(size);
+    }
+    while (canvas.getFontMetrics(FONT.deriveFont(size + .5f)).getAscent() <= limit) {
+      size += .5f;
+      font = FONT.deriveFont(size);
+    }
+    return font;
   }
 
   static final class Figure {
@@ -87,12 +102,10 @@ final class Drawing {
         Font baseFont,
         TextAlignment alignment) {
       this.text = text;
-      double available = text.length() * cellWidth;
+      int available = text.length() * cellWidth;
       Font fitted = baseFont;
-      while (fitted.getSize2D() > .5
-          && fitted.getStringBounds(text, FONT_CONTEXT).getWidth() > available) {
-        fitted = fitted.deriveFont(Math.max(.5f, (float) Math.ceil(fitted.getSize2D()) - 1));
-      }
+      if (fitted.getStringBounds(text, FONT_CONTEXT).getWidth() > available)
+        fitted = fontForWidth(text, available);
       this.font = fitted;
       double actualWidth = font.getStringBounds(text, FONT_CONTEXT).getWidth();
       double padding = available - actualWidth;
@@ -100,11 +113,32 @@ final class Drawing {
           x
               + (alignment == TextAlignment.LEFT
                   ? 0
-                  : alignment == TextAlignment.RIGHT ? padding : Math.round(padding / 2));
+                  : alignment == TextAlignment.RIGHT
+                      ? padding
+                      : available / 2 - (int) actualWidth / 2);
       int capHeight =
-          (int) Math.round(font.createGlyphVector(FONT_CONTEXT, "Z").getVisualBounds().getHeight());
+          font.createGlyphVector(FONT_CONTEXT, "Z").getVisualBounds().getBounds().height;
       this.y = Math.round(centreY + capHeight / 2);
       this.colour = colour;
+    }
+
+    private static Font fontForWidth(String text, int width) {
+      var canvas = new Canvas();
+      Font base = FONT.deriveFont(12f);
+      int baseWidth = canvas.getFontMetrics(base).stringWidth(text);
+      // The reference leaves one pixel free when shrinking from its 12-point default.
+      int limit = baseWidth > width ? width - 1 : width;
+      float size = Math.max(1, (float) Math.floor(width * 12.0 / baseWidth * 2) / 2);
+      Font font = base.deriveFont(size);
+      while (size > 1 && canvas.getFontMetrics(font).stringWidth(text) > limit) {
+        size -= .5f;
+        font = base.deriveFont(size);
+      }
+      while (canvas.getFontMetrics(base.deriveFont(size + .5f)).stringWidth(text) <= limit) {
+        size += .5f;
+        font = base.deriveFont(size);
+      }
+      return font.deriveFont(Math.max(1, (float) Math.floor(size)));
     }
 
     Rectangle2D bounds() {

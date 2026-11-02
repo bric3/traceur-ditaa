@@ -18,6 +18,9 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class ReferenceRenderingTest {
+  private static final String REFERENCE_DIRECTORY =
+      "/compatibility/" + (System.getProperty("os.name").equals("Linux") ? "linux/" : "");
+
   @TempDir Path directory;
 
   static Stream<Arguments> diagrams() throws Exception {
@@ -58,7 +61,7 @@ class ReferenceRenderingTest {
     String runtime = Runtime.version().feature() == 11 ? "java11/" : "";
     try (var input =
         getClass()
-            .getResourceAsStream("/compatibility/" + runtime + name + "-" + variant + ".png")) {
+            .getResourceAsStream(REFERENCE_DIRECTORY + runtime + name + "-" + variant + ".png")) {
       assertNotNull(input);
       var expected = ImageIO.read(input);
       assertEquals(expected.getWidth(), size.width(), "Width");
@@ -94,7 +97,7 @@ class ReferenceRenderingTest {
     Files.write(actualSvg, output.toByteArray());
     Path expectedSvg = directory.resolve("reference.svg");
     try (var input =
-        getClass().getResourceAsStream("/compatibility/" + name + "-" + variant + ".svg")) {
+        getClass().getResourceAsStream(REFERENCE_DIRECTORY + name + "-" + variant + ".svg")) {
       assertNotNull(input);
       Files.copy(input, expectedSvg);
     }

@@ -3,12 +3,52 @@ package io.github.bric3.traceur.ditaa;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.awt.Color;
 import java.awt.font.FontRenderContext;
 import java.io.ByteArrayOutputStream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.w3c.dom.Element;
 
 class TextLayoutTest {
+  @ParameterizedTest
+  @CsvSource({
+    "2,1,1",
+    "4,3,3",
+    "7,6,6.5",
+    "9,8,8.5",
+    "12,12.5,12.5",
+    "13,13,14",
+    "14,14.5,15",
+    "28,29,30",
+    "42,43,45"
+  })
+  void fontSizesMatchTheReferenceCellHeights(int height, float macSize, float linuxSize) {
+    var drawing = new Drawing(100, 100, new RenderOptions((height + .25) / 14, false, true));
+    assertEquals(height, drawing.cellHeight);
+    assertEquals(
+        System.getProperty("os.name").equals("Linux") ? linuxSize : macSize,
+        drawing.font.getSize2D());
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "8,38", "9,38", "10,39", "11,39", "12,39", "13,40", "14,40", "14.5,40", "15,40", "28.5,45"
+  })
+  void baselinesUseTheIntegerCapHeight(float fontSize, double baseline) {
+    var label =
+        new Drawing.Label(
+            "Z",
+            20,
+            35,
+            Color.BLACK,
+            100,
+            Drawing.FONT.deriveFont(fontSize),
+            Drawing.TextAlignment.LEFT);
+    assertEquals(baseline, label.y);
+  }
+
   private static double width(Drawing.Label label) {
     return label
         .font

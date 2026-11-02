@@ -38,9 +38,17 @@ class GenerateReferenceFixtures {
     if (!svgHash.equals("9418aa63ff6d89c5d2318396f59836e120e75bea7a5930c4d34aa10fe7a196a9")) {
       throw new IllegalArgumentException("The reference binary does not match ditaa 0.11.0");
     }
-    Path fixtures = Path.of("src/test/resources/compatibility");
+    Path inputsDirectory = Path.of("src/test/resources/compatibility");
+    Path fixtures =
+        System.getProperty("os.name").equals("Linux")
+            ? Files.createDirectories(inputsDirectory.resolve("linux"))
+            : inputsDirectory;
     Path work =
-        Files.createDirectories(Path.of("build/reference-fixtures", java11 ? "java11" : "java25"));
+        Files.createDirectories(
+            Path.of(
+                "build/reference-fixtures",
+                System.getProperty("os.name"),
+                java11 ? "java11" : "java25"));
     Path outputs = java11 ? Files.createDirectories(fixtures.resolve("java11")) : fixtures;
     String metadata =
         "# Project-authored inputs and reference renders use MPL-2.0.\n"
@@ -74,7 +82,7 @@ class GenerateReferenceFixtures {
               + "\n";
     }
     List<Path> inputs;
-    try (var files = Files.list(fixtures)) {
+    try (var files = Files.list(inputsDirectory)) {
       inputs = files.filter(p -> p.toString().endsWith(".ditaa")).sorted().toList();
     }
     if (inputs.isEmpty()) throw new IllegalArgumentException("No authored fixtures found");
@@ -202,7 +210,7 @@ class GenerateReferenceFixtures {
       System.out.println("Generated " + generated + " Java 11 PNG references");
       return;
     }
-    Files.write(fixtures.resolve("cases.tsv"), cases);
+    Files.write(inputsDirectory.resolve("cases.tsv"), cases);
     System.out.println(
         "Generated " + generated + " PNG and SVG reference pairs from authored fixtures");
   }
