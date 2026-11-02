@@ -226,8 +226,19 @@ jobs:
           git tag --no-sign "$RELEASE_TAG" "$GITHUB_SHA"
           ./gradlew jar sourcesJar javadocJar -x compileJava -PreleaseTag="$RELEASE_TAG" -PreleasePrerelease="$RELEASE_PRERELEASE"
 
-      - name: Update selected draft release
+      - name: Check draft target is still current
         if: steps.draft.outputs.id != ''
+        id: release_revision
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const {data: ref} = await github.rest.git.getRef({...context.repo, ref: 'heads/main'});
+            const current = ref.object.sha === context.sha;
+            core.setOutput('current', current);
+            if (!current) core.notice('Skipping draft refresh because main has advanced.');
+
+      - name: Update selected draft release
+        if: steps.release_revision.outputs.current == 'true'
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.draft.outputs.tag }}
@@ -244,7 +255,7 @@ jobs:
           makeLatest: false
 
       - name: Verify updated draft
-        if: steps.draft.outputs.id != ''
+        if: steps.release_revision.outputs.current == 'true'
         uses: actions/github-script@v8
         env:
           RELEASE_ID: ${{ steps.draft.outputs.id }}

@@ -65,6 +65,7 @@ classes with that version. The release action replaces the assets, and CI checks
 the resulting draft target and three JAR uploads.
 The tag must remain uncreated until publication; CI creates it only in its
 private checkout for versioning. If there is no draft, the refresh is skipped.
+CI also skips the draft refresh when `main` has advanced past the tested commit.
 They also publish the combined Java 11/25 JaCoCo line coverage to `coverage.json`
 on the `badges` branch. The README badge reads this data through Shields.io;
 updates can take a few minutes to appear because of image caching.
