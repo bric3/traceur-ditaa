@@ -26,7 +26,8 @@ final class PngWriter {
         shadow.fillRect(0, 0, drawing.width, drawing.height);
         shadow.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         shadow.setColor(new Color(150, 150, 150));
-        for (Drawing.Figure figure : drawing.figures)
+        // PNG shadows retain region discovery order before fills are sorted by area.
+        for (Drawing.Figure figure : drawing.shadowFigures)
           if (figure.shadow) {
             Path2D.Float shifted = new Path2D.Float(figure.path);
             // The reference displaces shadows by this fraction of a character cell.

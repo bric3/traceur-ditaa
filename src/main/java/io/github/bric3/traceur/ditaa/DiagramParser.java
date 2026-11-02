@@ -290,6 +290,7 @@ final class DiagramParser {
       for (long edge : region.edges) {
         if (!boundary.add(edge)) sharedEdges.add(edge);
       }
+    List<Region> shadowOrder = new ArrayList<>(regions);
     regions.sort(Comparator.comparingDouble((Region r) -> r.area).reversed());
     for (int y = 0; y < height; y++) {
       Matcher matcher = MARKUP.matcher(new String(grid[y]));
@@ -304,18 +305,18 @@ final class DiagramParser {
       }
     }
     for (Region region : regions) {
-      region.shape = shape(region, sharedEdges);
-    }
-    regions.sort(Comparator.comparingDouble((Region r) -> r.renderArea).reversed());
-    for (Region region : regions) {
-      drawing.figures.add(
+      Shape shape = shape(region, sharedEdges);
+      region.figure =
           new Drawing.Figure(
-              region.shape,
+              shape,
               region.colour,
               region.dashed,
               region.tag.equals("s") ? Drawing.Figure.Kind.STORAGE : Drawing.Figure.Kind.REGION,
-              region.renderArea));
+              region.renderArea);
     }
+    regions.sort(Comparator.comparingDouble((Region r) -> r.renderArea).reversed());
+    for (Region region : regions) drawing.figures.add(region.figure);
+    for (Region region : shadowOrder) drawing.shadowFigures.add(region.figure);
 
     // Draw each remaining connector as a continuous path so dash phase spans cells.
     List<Integer> orderedConnectors = prepareConnectors(boundary);
@@ -689,6 +690,10 @@ final class DiagramParser {
       if ((links[y][x] & mask & (1 << direction)) == 0) continue;
       int nx = x + DX[direction], ny = y + DY[direction];
       if (drawn.contains(edge(x, y, nx, ny))) continue;
+      if (cornerBridge(x, y, nx, ny, boundary)) {
+        drawn.add(edge(x, y, nx, ny));
+        continue;
+      }
       List<Point2D.Double> points = new ArrayList<>();
       points.add(new Point2D.Double(x, y));
       int px = x, py = y, d = direction;
@@ -767,12 +772,16 @@ final class DiagramParser {
       Point2D.Double other = points.get(1 - index);
       int ox = (int) other.x, oy = (int) other.y;
       boolean anchored = "<>^vV".indexOf(at(ox, oy)) >= 0;
-      if (!anchored && Integer.bitCount(links[oy][ox]) == 3) {
-        int closedEdges = 0;
+      if (!anchored) {
+        int closedEdges = 0, connections = 0;
         for (int d = 0; d < 4; d++)
-          if ((links[oy][ox] & (1 << d)) != 0
-              && boundary.contains(edge(ox, oy, ox + DX[d], oy + DY[d]))) closedEdges++;
-        anchored = closedEdges == 2;
+          if ((links[oy][ox] & (1 << d)) != 0) {
+            int nx = ox + DX[d], ny = oy + DY[d];
+            if (boundary.contains(edge(ox, oy, nx, ny))) closedEdges++;
+            else if (cornerBridge(ox, oy, nx, ny, boundary)) continue;
+            connections++;
+          }
+        anchored = closedEdges == 2 && connections == 3;
       }
       if (anchored) {
         if (c == '-') x = (point.x + 2) * cellWidth + (point.x > other.x ? cellWidth - 1 : 0);
@@ -780,6 +789,21 @@ final class DiagramParser {
       }
     }
     return new Point2D.Double(x, y);
+  }
+
+  private boolean cornerBridge(int x, int y, int nx, int ny, Set<Long> boundary) {
+    return at(x, y) == '+'
+        && at(nx, ny) == '+'
+        && closedCorner(x, y, boundary)
+        && closedCorner(nx, ny, boundary);
+  }
+
+  private boolean closedCorner(int x, int y, Set<Long> boundary) {
+    int directions = 0;
+    for (int d = 0; d < 4; d++)
+      if ((links[y][x] & (1 << d)) != 0 && boundary.contains(edge(x, y, x + DX[d], y + DY[d])))
+        directions |= 1 << d;
+    return Integer.bitCount(directions) == 2 && directions != 5 && directions != 10;
   }
 
   private Shape shape(Region region, Set<Long> sharedEdges) {
@@ -1033,7 +1057,7 @@ final class DiagramParser {
     final boolean branched;
     Color colour = Color.WHITE;
     String tag = "";
-    Shape shape;
+    Drawing.Figure figure;
     double renderArea;
 
     Region(

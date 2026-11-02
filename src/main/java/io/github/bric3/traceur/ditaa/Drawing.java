@@ -28,6 +28,7 @@ final class Drawing {
   final Font font;
   final boolean shadows;
   final List<Figure> figures = new ArrayList<>();
+  final List<Figure> shadowFigures = new ArrayList<>();
   final List<Label> labels = new ArrayList<>();
 
   Drawing(int width, int height, RenderOptions options) {

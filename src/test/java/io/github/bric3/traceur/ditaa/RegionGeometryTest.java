@@ -14,9 +14,53 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class RegionGeometryTest {
+  @ParameterizedTest
+  @CsvSource({"0, 2", "1, 2", "3, 3", "5, 5"})
+  void adjacentClosedCornersRetainTheirRegions(int layout, int expected) throws IOException {
+    var drawing =
+        DiagramParser.parse(layout("corner-connections", 6, layout), RenderOptions.DEFAULT);
+    assertEquals(expected, drawing.figures.size());
+    assertTrue(
+        drawing.figures.stream().allMatch(figure -> figure.kind == Drawing.Figure.Kind.REGION));
+    assertTrue(drawing.labels.isEmpty());
+  }
+
+  @Test
+  void anExplicitShaftConnectsAdjacentRegions() throws IOException {
+    var drawing = DiagramParser.parse(layout("corner-connections", 6, 2), RenderOptions.DEFAULT);
+    assertEquals(3, drawing.figures.size());
+    var connector =
+        drawing.figures.stream()
+            .filter(figure -> figure.kind == Drawing.Figure.Kind.CONNECTOR)
+            .findFirst()
+            .orElseThrow();
+    var bounds = connector.path.getBounds2D();
+    assertEquals(65, bounds.getMinX());
+    assertEquals(85, bounds.getMaxX());
+    assertEquals(35, bounds.getMinY());
+    assertEquals(0, bounds.getHeight());
+  }
+
+  @Test
+  void aShortShaftKeepsItsLengthBesideAdjacentCorners() throws IOException {
+    var drawing = DiagramParser.parse(layout("corner-connections", 6, 4), RenderOptions.DEFAULT);
+    assertEquals(3, drawing.figures.size());
+    var connector =
+        drawing.figures.stream()
+            .filter(figure -> figure.kind == Drawing.Figure.Kind.CONNECTOR)
+            .findFirst()
+            .orElseThrow();
+    var bounds = connector.path.getBounds2D();
+    assertEquals(20, bounds.getMinX());
+    assertEquals(35, bounds.getMaxX());
+    assertEquals(63, bounds.getMinY());
+    assertEquals(0, bounds.getHeight());
+  }
+
   @Test
   void nestedStacksKeepTheirEnclosingContour() throws IOException {
     var drawing = DiagramParser.parse(nestedLayout(0), RenderOptions.DEFAULT);
@@ -94,12 +138,16 @@ class RegionGeometryTest {
   }
 
   private static String nestedLayout(int index) throws IOException {
+    return layout("nested-subdivisions", 4, index);
+  }
+
+  private static String layout(String name, int expected, int index) throws IOException {
     try (var input =
-        RegionGeometryTest.class.getResourceAsStream("/compatibility/nested-subdivisions.ditaa")) {
+        RegionGeometryTest.class.getResourceAsStream("/compatibility/" + name + ".ditaa")) {
       assertNotNull(input);
       String[] layouts =
           new String(input.readAllBytes(), StandardCharsets.UTF_8).stripTrailing().split("\n\n");
-      assertEquals(4, layouts.length);
+      assertEquals(expected, layouts.length);
       return layouts[index];
     }
   }
