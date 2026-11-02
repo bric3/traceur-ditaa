@@ -10,6 +10,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class ConnectorGeometryTest {
   static Stream<Arguments> roundedJunctions() {
@@ -50,9 +51,10 @@ class ConnectorGeometryTest {
     assertEquals(right, bounds.getMaxX());
   }
 
-  @Test
-  void adjacentPlusEndpointsAreConsumedTogether() {
-    var drawing = DiagramParser.parse("++", RenderOptions.DEFAULT);
+  @ParameterizedTest
+  @ValueSource(strings = {"++", "+++", "+\n+\n+"})
+  void adjacentPlusEndpointsAreConsumedTogether(String text) {
+    var drawing = DiagramParser.parse(text, RenderOptions.DEFAULT);
     assertTrue(drawing.figures.isEmpty());
     assertTrue(drawing.labels.isEmpty());
   }

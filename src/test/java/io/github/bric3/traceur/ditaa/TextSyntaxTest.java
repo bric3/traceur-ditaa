@@ -53,8 +53,16 @@ class TextSyntaxTest {
   @Test
   void unconnectedStarsDisappearAndDirectionLettersRemainText() {
     assertTrue(labels("*  *").isEmpty());
+    assertEquals(List.of("+ "), labels("+"));
     assertEquals(List.of("Visual variable", "V v"), labels("Visual variable\nV v"));
     assertEquals(List.of("AB", "/ ", "BC"), labels("AB\n /\nBC"));
+  }
+
+  @Test
+  void bulletsRequireALetterOrDigitAfterTheSpace() {
+    assertEquals(List.of("pointer"), labels("pointer * |"));
+    assertEquals(List.of("[item]"), labels("* [item]"));
+    assertEquals(List.of("!item"), labels("* !item"));
   }
 
   @ParameterizedTest
@@ -72,6 +80,8 @@ class TextSyntaxTest {
     assertEquals(30, drawing.labels.get(2).x);
     assertTrue(drawing.figures.isEmpty());
     assertEquals(List.of("fooo bar", "o ", "bar", "o "), labels("fooo bar\no  bar\no"));
+    assertEquals(List.of("\u2022élan"), labels(marker + " élan"));
+    assertEquals(List.of("\u2022١23"), labels(marker + " ١23"));
   }
 
   @Test

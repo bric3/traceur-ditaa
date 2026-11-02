@@ -172,7 +172,7 @@ final class DiagramParser {
         if ((marker == 'o' || marker == '*')
             && (x == 0 || at(x - 1, y) == ' ')
             && at(x + 1, y) == ' '
-            && at(x + 2, y) != ' ') {
+            && Character.isLetterOrDigit(at(x + 2, y))) {
           grid[y][x] = ' ';
           grid[y][x + 1] = '\u2022';
         }
@@ -695,6 +695,10 @@ final class DiagramParser {
       if (connections == 0) continue;
       int direction = Integer.numberOfTrailingZeros(connections);
       links[y + DY[direction]][x + DX[direction]] &= ~(1 << ((direction + 2) % 4));
+      if (at(x + DX[direction], y + DY[direction]) == '+'
+          && links[y + DY[direction]][x + DX[direction]] == 0) {
+        consumed[y + DY[direction]][x + DX[direction]] = true;
+      }
     }
   }
 
