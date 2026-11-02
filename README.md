@@ -40,18 +40,32 @@ public CLI or binary compatibility with ditaa's Java classes.
 
 ## Build
 
-Build from a Git checkout with tags, Java 11 and Java 25 toolchains, and
-`rsvg-convert` installed:
+Build from a Git checkout with tags and Java 11 and Java 25 toolchains:
 
 ```sh
 ./gradlew build
 ```
 
-Gradle runs on Java 25 and compiles with `--release 11`. `build` runs the tests on
-both Java versions, enforces at least 99% line and 97% branch coverage, and writes
-the library, source, and Javadoc JARs to
+Gradle runs on Java 25. The library compiles with `--release 11`. `build` runs
+the tests on both Java versions, checks formatting and licence headers, enforces
+at least 99% line and 97% branch coverage, and writes the library, source, and
+Javadoc JARs to
 `build/libs/`. Set `org.gradle.java.installations.paths` if Gradle cannot discover
 the installed JDKs.
+
+SVG fixture tests use JSVG in memory. The independent corpus comparison requires
+`rsvg-convert`. Both rasterisers compare reference and actual SVGs with exact
+pixel assertions.
+
+Source quality uses Spotless 8.10.4 with Prince of Space 2.3.0 followed by
+TableTest Formatter 1.1.2, and Yumi Licenser 4.0.0 for MPL-2.0 headers.
+Shared tool versions live in `gradle/libs.versions.toml`. Build and configuration
+caching are enabled.
+
+```sh
+./gradlew spotlessApply
+./gradlew applyLicenses
+```
 
 ## Versions and CI
 
@@ -96,10 +110,10 @@ Before enabling publishing:
 
 | Secret                               | Value                                              |
 | ------------------------------------ | -------------------------------------------------- |
-| `MAVEN_CENTRAL_USERNAME`              | Username from the Central user token                |
-| `MAVEN_CENTRAL_TOKEN`                 | Password from the Central user token                |
-| `ORG_GRADLE_PROJECT_SIGNINGKEY`       | ASCII-armoured private PGP signing key              |
-| `ORG_GRADLE_PROJECT_SIGNINGPASSWORD`  | Passphrase for that key                             |
+| `MAVEN_CENTRAL_USERNAME`             | Username from the Central user token               |
+| `MAVEN_CENTRAL_TOKEN`                | Password from the Central user token               |
+| `ORG_GRADLE_PROJECT_SIGNINGKEY`      | ASCII-armoured private PGP signing key             |
+| `ORG_GRADLE_PROJECT_SIGNINGPASSWORD` | Passphrase for that key                            |
 
 Publish the corresponding public key to a
 [Central-supported keyserver](https://central.sonatype.org/publish/requirements/gpg/#distributing-your-public-key).

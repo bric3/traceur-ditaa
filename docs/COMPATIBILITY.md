@@ -17,11 +17,17 @@ input, grids above 250,000 cells, dimensions above 32,768 pixels, and images abo
 
 ## Corpus comparison
 
-The normal build runs 1,753 tests on each JDK, including 1,512 exact image comparisons
-from 63 project-authored diagrams, three scales and all shadow/separation settings.
+The normal build runs 1,829 tests on each JDK, including 1,584 exact image comparisons
+from 66 project-authored diagrams, three scales and all shadow/separation settings.
 PNG assertions compare every decoded pixel. SVG assertions rasterise both vectors
-with `rsvg-convert` before comparing every pixel. These focused fixtures cover
+in memory with JSVG 2.2.0 before comparing every pixel. These focused fixtures cover
 individual features; the external corpus below checks their combinations.
+
+TableTest expresses tabular geometry, text and version-mapping cases. A diagram
+argument converter expands explicit row breaks while preserving diagram spacing.
+Generated fixture matrices, concurrency and I/O checks retain JUnit 5 constructs.
+JSVG and TableTest are test dependencies; the library and cold-start harness have
+no third-party runtime dependencies.
 
 `check` enforces 99% line coverage and 97% branch coverage of the whole renderer,
 without exclusions. HTML and XML reports are written to `build/reports/jacoco/test/`.
@@ -91,6 +97,9 @@ The benchmark interleaves 30 fresh JVMs per implementation, format, and diagram
 size. Timing includes startup, layout, rendering, and encoding. The gate requires
 a lower median and p95 no higher than the reference. Results, raw samples, and
 environment details are written to `build/cold-start/`.
+The PNG reference uses the same public raw-text entry point as the corpus check;
+the SVG reference uses ditaa's CLI. Compare revisions with the same entry points,
+JDK, fonts and inputs.
 
 Run without competing builds. Peak RSS uses `/usr/bin/time` on macOS and Linux;
 macOS sandbox restrictions can prevent access to its resource counters.

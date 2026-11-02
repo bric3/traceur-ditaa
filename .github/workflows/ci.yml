@@ -151,7 +151,7 @@ jobs:
           makeLatest: false
           body: |
             Experimental Java 11 library for rendering ditaa diagrams as PNG and SVG.
-            Pixel compatibility is incomplete.
+            All pinned corpus comparisons match exactly.
 
             Built from ${{ github.sha }}.
             See the [validation snapshot](${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/docs/VALIDATION.md) for comparison and cold-start results.

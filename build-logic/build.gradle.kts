@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     `kotlin-dsl`
 }
@@ -8,7 +10,7 @@ java {
 }
 
 // Gradle's embedded Kotlin compiler supports JVM targets through Java 24.
-kotlin.compilerOptions.jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_24
+kotlin.compilerOptions.jvmTarget = JvmTarget.JVM_24
 tasks.withType<JavaCompile>().configureEach { options.release = 24 }
 
 dependencies {
