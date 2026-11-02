@@ -7,8 +7,8 @@ vector paths and escaped text. Each render call owns its state.
 
 The parser recognises nested and adjacent regions, rounded corners, dashed lines,
 arrows, markers, bullets, colours, and `{d}`, `{s}`, `{io}`, `{o}`, `{mo}`, `{c}`,
-and `{tr}` shape tags. Complex boundaries, scaling, text layout, and some shape
-styles still differ from the references.
+and `{tr}` shape tags. Additional mixed-boundary combinations still differ from
+the references.
 
 Tabs expand to eight-column stops; CRLF and CR become LF. Empty input produces a
 blank image. Rendering rejects invalid text characters and scales, oversized
@@ -17,8 +17,8 @@ input, grids above 250,000 cells, dimensions above 32,768 pixels, and images abo
 
 ## Corpus comparison
 
-The normal build runs 1,681 tests on each JDK, including 1,440 exact image comparisons
-from 60 project-authored diagrams, three scales and all shadow/separation settings.
+The normal build runs 1,705 tests on each JDK, including 1,464 exact image comparisons
+from 61 project-authored diagrams, three scales and all shadow/separation settings.
 PNG assertions compare every decoded pixel. SVG assertions rasterise both vectors
 with `rsvg-convert` before comparing every pixel. These focused fixtures cover
 individual features; the external corpus below checks their combinations.
@@ -94,5 +94,5 @@ environment details are written to `build/cold-start/`.
 
 Run without competing builds. Peak RSS uses `/usr/bin/time` on macOS and Linux;
 macOS sandbox restrictions can prevent access to its resource counters.
-CI and release workflows run the corpus comparison before publishing. The current
-mismatches fail that gate. Cold-start benchmarks remain opt-in.
+CI and release workflows require every corpus comparison to pass before publishing.
+Cold-start benchmarks remain opt-in.

@@ -9,7 +9,7 @@ PNG and vector SVG. It targets Java 11 and has no third-party runtime dependenci
 Maven coordinates: `io.github.bric3.traceur:traceur-ditaa`. Publication is pending.
 
 Complete rendering compatibility is required before release. The current renderer
-matches 1,908 of 1,920 corpus comparisons exactly. See the
+matches all 1,920 corpus comparisons exactly. See the
 [validation snapshot](docs/VALIDATION.md) for the measured gaps.
 
 ## Usage
@@ -71,7 +71,6 @@ Development builds write the calculated version to `build/semver/version.txt`.
 Successful `main` builds publish snapshots and update one draft named
 "Development preview", with tag `development-preview` and the tested JARs.
 Both publishing workflows require all 1,920 corpus comparisons to match exactly.
-The current compatibility failures block snapshot and release publication in CI.
 
 To release, open GitHub's **Releases > Draft a new release**, select the target
 commit and enter `v0.0.2-rc.1` for a prerelease or `v0.0.2` for the final release.

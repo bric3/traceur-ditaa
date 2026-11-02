@@ -1,15 +1,15 @@
 # Validation snapshot
 
-Compatibility and coverage measured on 2026-11-02. The exact-render gate still
-fails. The historical cold-start measurements below were recorded on 2026-11-01.
+Compatibility and coverage measured on 2026-11-02. Every pinned corpus comparison
+passes. The historical cold-start measurements below were recorded on 2026-11-01.
 
 ## Build
 
-All 3,362 tests pass across Java 11 and Java 25 on macOS. The same 1,681 tests pass
-on each JDK in isolated Linux containers. The suite includes 1,440 exact PNG/SVG
+All 3,410 tests pass across Java 11 and Java 25 on macOS. The same 1,705 tests pass
+on each JDK in isolated Linux containers. The suite includes 1,464 exact PNG/SVG
 comparisons of project-authored fixtures. It covers encoding, shapes, connectors,
 options, text, allocation limits, unavailable PNG encoders, write failures and
-concurrent rendering. Renderer coverage is 99.6% of lines and 97.4% of branches,
+concurrent rendering. Renderer coverage is 99.4% of lines and 97.1% of branches,
 with no exclusions. `check` requires at least 99% line and 97% branch coverage.
 Library classes target bytecode version 55 and depend only on
 `java.base` and `java.desktop`. Release JARs include the MPL-2.0 licence.
@@ -23,11 +23,11 @@ All 1,920 cases completed across both formats and four option variants:
 | Format | Exact matches | Differences |
 | ------ | ------------- | ----------- |
 | PNG    | 960           | 0           |
-| SVG    | 948           | 12          |
-| Total  | 1,908         | 12          |
+| SVG    | 960           | 0           |
+| Total  | 1,920         | 0           |
 
-This improves the initial 76 exact matches; complete compatibility remains unmet.
-Complex boundaries, text layout, dashed curves and combined features still differ.
+All pinned comparisons now match, improving the initial 76 exact matches.
+Additional mixed-boundary cases outside this corpus remain under investigation.
 The PNG oracle now invokes the public raw-text API in an isolated JVM. This removes
 PlantUML preprocessing from the comparison and eliminates all 40 dimension
 mismatches. Both renderers receive identical input whitespace.
