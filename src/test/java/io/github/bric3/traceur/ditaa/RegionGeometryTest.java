@@ -18,6 +18,16 @@ import org.tabletest.junit.TableTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class RegionGeometryTest {
+  @Test
+  void separateBranchedFramesKeepOnlyTheirConnectingFill() throws IOException {
+    assertRegionBounds(
+        DiagramParser.parse(layout("branched-pair", 2, 1), RenderOptions.DEFAULT),
+        1,
+        50,
+        14
+    );
+  }
+
   @TableTest({
     "layout | regions | width | height",
     "0      | 3       | 350   | 84    ",

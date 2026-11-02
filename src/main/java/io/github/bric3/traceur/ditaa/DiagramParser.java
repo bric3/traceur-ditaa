@@ -428,10 +428,12 @@ final class DiagramParser {
         if (exterior == null
             && openedExteriors.contains(region.component)
             && (!region.isRectangle()
-            || compartmentCounts.get(region.component) - closedCompartments.getOrDefault(
-                region.component,
-                0
-        ) > 1)
+            || !region.shortBranch
+            || regions
+              .stream()
+              .anyMatch(other -> other != region
+                  && other.branched
+                  && !Collections.disjoint(region.edges, other.edges)))
             || exterior != null
             && (exterior.branched
             || !exterior.isRectangle()
