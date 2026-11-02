@@ -978,10 +978,10 @@ final class DiagramParser {
     path = new Path2D.Double();
     switch (region.tag) {
       case "c":
-        path.moveTo(x + w / 2, y);
+        path.moveTo(x, y + h / 2);
+        path.lineTo(x + w / 2, y);
         path.lineTo(x + w, y + h / 2);
         path.lineTo(x + w / 2, y + h);
-        path.lineTo(x, y + h / 2);
         break;
       case "io":
         path.moveTo(x + skew, y);
