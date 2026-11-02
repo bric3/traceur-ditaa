@@ -22,11 +22,11 @@ import javax.imageio.ImageIO;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 /**
- * Separate-process oracle comparisons; every failure is recorded and fails the task.
+ * Separate-process reference renderer comparisons; every failure is recorded and fails the task.
  */
 public final class CorpusComparison {
   public static void main(String[] args) throws Exception {
-    Path corpus = null, oracle = null, svgOracle = null, report = null;
+    Path corpus = null, pngReferenceJar = null, svgReferenceJar = null, report = null;
     String rasterizer = "rsvg-convert";
     CorpusShard shard = null;
     for (int i = 0; i < args.length; i += 2) {
@@ -37,11 +37,11 @@ public final class CorpusComparison {
         case "--corpus":
           corpus = Path.of(args[i + 1]);
           break;
-        case "--oracle":
-          oracle = Path.of(args[i + 1]).toAbsolutePath();
+        case "--png-reference":
+          pngReferenceJar = Path.of(args[i + 1]).toAbsolutePath();
           break;
-        case "--svg-oracle":
-          svgOracle = Path.of(args[i + 1]).toAbsolutePath();
+        case "--svg-reference":
+          svgReferenceJar = Path.of(args[i + 1]).toAbsolutePath();
           break;
         case "--report":
           report = Path.of(args[i + 1]).toAbsolutePath();
@@ -53,14 +53,14 @@ public final class CorpusComparison {
           throw new IllegalArgumentException("Unknown argument: " + args[i]);
       }
     }
-    if (corpus == null || oracle == null || svgOracle == null || report == null) {
+    if (corpus == null || pngReferenceJar == null || svgReferenceJar == null || report == null) {
       throw new IllegalArgumentException(
-          "Supply -Pcorpus=INPUT_DIRECTORY -Poracle=PLANTUML_JAR -PsvgOracle=DITAA_JAR (and"
-          + " optionally -Prasterizer=RSVG_CONVERT)"
+          "Supply --corpus INPUT_DIRECTORY --png-reference PLANTUML_JAR --svg-reference DITAA_JAR"
+          + " (and optionally --rasterizer RSVG_CONVERT)"
       );
     }
-    if (!Files.isRegularFile(oracle) || !Files.isRegularFile(svgOracle)) {
-      throw new IllegalArgumentException("Missing oracle binary");
+    if (!Files.isRegularFile(pngReferenceJar) || !Files.isRegularFile(svgReferenceJar)) {
+      throw new IllegalArgumentException("Missing reference renderer JAR");
     }
     List<Path> inputs;
     try (var files = Files.walk(corpus)) {
@@ -99,9 +99,9 @@ public final class CorpusComparison {
         + " "
         + System.getProperty("os.arch")
         + "\nplantuml.sha256="
-        + sha256(Files.readAllBytes(oracle))
+        + sha256(Files.readAllBytes(pngReferenceJar))
         + "\nditaa.sha256="
-        + sha256(Files.readAllBytes(svgOracle))
+        + sha256(Files.readAllBytes(svgReferenceJar))
         + "\nfonts="
         + String.join(
                 ",",
@@ -127,7 +127,7 @@ public final class CorpusComparison {
       String inputId = sha256(Files.readAllBytes(inputs.get(i)));
       for (int variant = 0; variant < 4; variant++) {
         for (OutputFormat format : OutputFormat.values()) {
-          Path input = inputs.get(i), pngReference = oracle, svgReference = svgOracle;
+          Path input = inputs.get(i), pngReference = pngReferenceJar, svgReference = svgReferenceJar;
           Path dir = report.resolve(String.format(
               Locale.ROOT,
               "%s-%d-%s",
@@ -209,8 +209,8 @@ public final class CorpusComparison {
       Path input,
       int variant,
       OutputFormat format,
-      Path oracle,
-      Path svgOracle,
+      Path pngReferenceJar,
+      Path svgReferenceJar,
       String rasterizer,
       Path dir,
       String environment
@@ -242,8 +242,8 @@ public final class CorpusComparison {
                 javaCommand(),
                 "-Djava.awt.headless=true",
                 "-cp",
-                System.getProperty("java.class.path") + java.io.File.pathSeparator + oracle,
-                OraclePngProcess.class.getName(),
+                System.getProperty("java.class.path") + java.io.File.pathSeparator + pngReferenceJar,
+                PngReferenceProcess.class.getName(),
                 raw.toString(),
                 reference.toString(),
                 Double.toString(options.scale()),
@@ -251,8 +251,8 @@ public final class CorpusComparison {
                 Boolean.toString(options.separation())
             ),
             null,
-            dir.resolve("oracle-stdout.log"),
-            dir.resolve("oracle.log")
+            dir.resolve("reference-stdout.log"),
+            dir.resolve("reference.log")
         );
       } else {
         Path referenceSvg = dir.resolve("reference.svg");
@@ -260,7 +260,7 @@ public final class CorpusComparison {
             javaCommand(),
             "-Djava.awt.headless=true",
             "-jar",
-            svgOracle.toString(),
+            svgReferenceJar.toString(),
             raw.toString(),
             referenceSvg.toString(),
             "--svg",
@@ -275,7 +275,12 @@ public final class CorpusComparison {
         if (variant == 3) {
           command.addAll(List.of("-s", "0.7"));
         }
-        status = run(command, null, dir.resolve("oracle.log"), dir.resolve("oracle-error.log"));
+        status = run(
+            command,
+            null,
+            dir.resolve("reference.log"),
+            dir.resolve("reference-error.log")
+        );
         if (status.equals("OK")) {
           status = run(
               List.of(rasterizer, "--output", reference.toString(), referenceSvg.toString()),

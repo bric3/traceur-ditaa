@@ -11,8 +11,8 @@ class CorpusComparisonTest {
   Path directory;
 
   @Test
-  void oracleAdapterRejectsMissingArgumentsBeforeLoadingTheReference() {
-    assertThrows(IllegalArgumentException.class, () -> OraclePngProcess.main(new String[0]));
+  void pngReferenceProcessRejectsMissingArgumentsBeforeLoadingTheReference() {
+    assertThrows(IllegalArgumentException.class, () -> PngReferenceProcess.main(new String[0]));
   }
 
   @Test

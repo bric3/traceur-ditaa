@@ -8,7 +8,7 @@ import javax.imageio.ImageIO;
 /**
  * Isolated reference entry point: invokes public binary APIs and preserves raw input whitespace.
  */
-public final class OraclePngProcess {
+public final class PngReferenceProcess {
   public static void main(String[] args) throws Exception {
     if (args.length != 5) {
       throw new IllegalArgumentException("INPUT OUTPUT SCALE SHADOWS SEPARATION");

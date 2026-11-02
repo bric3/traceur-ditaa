@@ -74,8 +74,8 @@ the external cache with Java 25 and JBang:
 jbang tools/FetchPinnedCorpus.java corpus/manifest.tsv /tmp/traceur-ditaa-corpus
 ./gradlew compareCorpus \
   -Pcorpus=/tmp/traceur-ditaa-corpus/inputs \
-  -Poracle=/path/to/plantuml-1.2026.8.jar \
-  -PsvgOracle=/path/to/ditaa-0.11.0-standalone.jar
+  -PpngReference=/path/to/plantuml-1.2026.8.jar \
+  -PsvgReference=/path/to/ditaa-0.11.0-standalone.jar
 ```
 
 Install `rsvg-convert`, or supply `-Prasterizer=/path/to/rsvg-convert`.
@@ -91,7 +91,7 @@ disabled, and scale 0.7. Reference processes have a 15-second timeout; four case
 run concurrently. Every mismatch or error fails the task. Results, logs, overlays,
 and difference images appear in `build/comparison/index.html`.
 
-Successful references are cached by input, options, format, oracle hashes, JDK,
+Successful references are cached by input, options, format, reference JAR hashes, JDK,
 and rasterizer. Delete `build/comparison` to refresh them after changing fonts.
 CI and releases require all 5,920 comparisons, partitioned into four deterministic
 SHA-256 shards. To run one shard locally, add `-PcorpusShard=0/4` to `compareCorpus`.
@@ -129,8 +129,8 @@ remain required cases and fail the comparison.
 
 ```sh
 ./gradlew benchmarkColdStart \
-  -Poracle=/path/to/plantuml-1.2026.8.jar \
-  -PsvgOracle=/path/to/ditaa-0.11.0-standalone.jar
+  -PpngReference=/path/to/plantuml-1.2026.8.jar \
+  -PsvgReference=/path/to/ditaa-0.11.0-standalone.jar
 ```
 
 The benchmark interleaves 30 fresh JVMs per implementation, format, and diagram

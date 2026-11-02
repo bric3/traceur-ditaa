@@ -57,8 +57,8 @@ jobs:
           java -Djava.awt.headless=true
           -cp build/classes/java/main:build/classes/java/tools CorpusComparison
           --corpus "$RUNNER_TEMP/corpus/inputs"
-          --oracle "$RUNNER_TEMP/plantuml.jar"
-          --svg-oracle "$RUNNER_TEMP/ditaa.jar"
+          --png-reference "$RUNNER_TEMP/plantuml.jar"
+          --svg-reference "$RUNNER_TEMP/ditaa.jar"
           --shard "$CORPUS_SHARD"
           --report build/comparison
 

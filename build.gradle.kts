@@ -93,8 +93,8 @@ tasks.register<JavaExec>("compareCorpus") {
     mainClass = "CorpusComparison"
     systemProperty("java.awt.headless", "true")
     providers.gradleProperty("corpus").orNull?.let { args("--corpus", it) }
-    providers.gradleProperty("oracle").orNull?.let { args("--oracle", it) }
-    providers.gradleProperty("svgOracle").orNull?.let { args("--svg-oracle", it) }
+    providers.gradleProperty("pngReference").orNull?.let { args("--png-reference", it) }
+    providers.gradleProperty("svgReference").orNull?.let { args("--svg-reference", it) }
     providers.gradleProperty("corpusShard").orNull?.let { args("--shard", it) }
     args("--rasterizer", providers.gradleProperty("rasterizer").getOrElse("rsvg-convert"))
     args("--report", layout.buildDirectory.dir("comparison").get().asFile.absolutePath)
@@ -104,8 +104,8 @@ tasks.register<JavaExec>("benchmarkColdStart") {
     description = "Measures fresh JVM rendering, including JVM startup and output encoding."
     classpath = tools.runtimeClasspath
     mainClass = "ColdStartBenchmark"
-    providers.gradleProperty("oracle").orNull?.let { args(it) }
-    providers.gradleProperty("svgOracle").orNull?.let { args(it) }
+    providers.gradleProperty("pngReference").orNull?.let { args(it) }
+    providers.gradleProperty("svgReference").orNull?.let { args(it) }
 }
 
 publishing {

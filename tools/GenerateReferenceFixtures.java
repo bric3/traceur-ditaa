@@ -29,17 +29,17 @@ class GenerateReferenceFixtures {
     List<String> selected = args.length == 4 ? List.of(args[3].split(",")) : null;
     String javaCommand =
         java11 ? args[2] : Path.of(System.getProperty("java.home"), "bin", "java").toString();
-    Path oracle = Path.of(args[0]).toAbsolutePath();
+    Path pngReferenceJar = Path.of(args[0]).toAbsolutePath();
     String hash = HexFormat
       .of()
-      .formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(oracle)));
+      .formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(pngReferenceJar)));
     if (!hash.equals("0f77e5f769836b3dee340e207fe497c3e4c43e973d559e3c306915da9c32e34c")) {
       throw new IllegalArgumentException("The reference binary does not match PlantUML 1.2026.8");
     }
-    Path svgOracle = Path.of(args[1]).toAbsolutePath();
+    Path svgReferenceJar = Path.of(args[1]).toAbsolutePath();
     String svgHash = HexFormat
       .of()
-      .formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(svgOracle)));
+      .formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(svgReferenceJar)));
     if (!svgHash.equals("9418aa63ff6d89c5d2318396f59836e120e75bea7a5930c4d34aa10fe7a196a9")) {
       throw new IllegalArgumentException("The reference binary does not match ditaa 0.11.0");
     }
@@ -54,7 +54,7 @@ class GenerateReferenceFixtures {
     ));
     Path outputs = java11 ? Files.createDirectories(fixtures.resolve("java11")) : fixtures;
     String metadata = "# Licences: MPL-2.0; blog-* CC-BY-SA-4.0 (BLOG-SOURCES.md).\n"
-        + "oracle.version=PlantUML 1.2026.8\noracle.sha256="
+        + "png.version=PlantUML 1.2026.8\npng.sha256="
         + hash
         + "\npng.api=raw-text\n"
         + "svg.version=ditaa 0.11.0\nsvg.sha256="
@@ -126,13 +126,13 @@ class GenerateReferenceFixtures {
           "UTF-8",
           "-d",
           helperClasses.toString(),
-          "src/tools/java/OraclePngProcess.java",
+          "src/tools/java/PngReferenceProcess.java",
           "src/tools/java/io/github/bric3/traceur/ditaa/testing/ReferenceFonts.java"
       );
     if (compilation != 0) {
       throw new IllegalStateException("Cannot compile the raw-text PNG entry point");
     }
-    String oracleClasspath = oracle + File.pathSeparator + helperClasses;
+    String pngReferenceClasspath = pngReferenceJar + File.pathSeparator + helperClasses;
     List<Options> options = new ArrayList<>();
     for (double scale : new double[] {1, .7, 2}) {
       for (boolean shadows : new boolean[] {true, false}) {
@@ -175,8 +175,8 @@ class GenerateReferenceFixtures {
                   "-Djava.awt.headless=true",
                   "-Dtraceur.reference.warmFonts=true",
                   "-cp",
-                  oracleClasspath,
-                  "OraclePngProcess",
+                  pngReferenceClasspath,
+                  "PngReferenceProcess",
                   input.toAbsolutePath().toString(),
                   output.toAbsolutePath().toString(),
                   Double.toString(settings.scale),
@@ -206,7 +206,7 @@ class GenerateReferenceFixtures {
                   Path.of(System.getProperty("java.home"), "bin", "java").toString(),
                   "-Djava.awt.headless=true",
                   "-jar",
-                  svgOracle.toString(),
+                  svgReferenceJar.toString(),
                   input.toAbsolutePath().toString(),
                   svg.toString(),
                   "--svg",

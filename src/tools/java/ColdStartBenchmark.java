@@ -14,10 +14,10 @@ import java.util.concurrent.TimeUnit;
 public final class ColdStartBenchmark {
   public static void main(String[] args) throws Exception {
     if (args.length != 2) {
-      throw new IllegalArgumentException("Supply -Poracle=PLANTUML_JAR -PsvgOracle=DITAA_JAR");
+      throw new IllegalArgumentException("Supply PLANTUML_JAR DITAA_JAR");
     }
-    Path oracle = Path.of(args[0]).toAbsolutePath();
-    Path svgOracle = Path.of(args[1]).toAbsolutePath();
+    Path pngReferenceJar = Path.of(args[0]).toAbsolutePath();
+    Path svgReferenceJar = Path.of(args[1]).toAbsolutePath();
     Path dir = Files.createDirectories(Path
       .of(System.getProperty("benchmark.directory", "build/cold-start"))
       .toAbsolutePath()
@@ -47,9 +47,9 @@ public final class ColdStartBenchmark {
         + "\nprocessors="
         + Runtime.getRuntime().availableProcessors()
         + "\nplantuml.sha256="
-        + CorpusComparison.sha256(Files.readAllBytes(oracle))
+        + CorpusComparison.sha256(Files.readAllBytes(pngReferenceJar))
         + "\nditaa.sha256="
-        + CorpusComparison.sha256(Files.readAllBytes(svgOracle))
+        + CorpusComparison.sha256(Files.readAllBytes(svgReferenceJar))
         + "\n"
     );
     boolean passed = true;
@@ -89,8 +89,8 @@ public final class ColdStartBenchmark {
             } else if (format.equals("PNG")) {
               command.addAll(List.of(
                   "-cp",
-                  System.getProperty("java.class.path") + File.pathSeparator + oracle,
-                  "OraclePngProcess",
+                  System.getProperty("java.class.path") + File.pathSeparator + pngReferenceJar,
+                  "PngReferenceProcess",
                   input.toString(),
                   rendered.toString(),
                   "1",
@@ -100,7 +100,7 @@ public final class ColdStartBenchmark {
             } else {
               command.addAll(List.of(
                   "-jar",
-                  svgOracle.toString(),
+                  svgReferenceJar.toString(),
                   input.toString(),
                   dir.resolve("reference.svg").toString(),
                   "--svg",
