@@ -1063,7 +1063,9 @@ final class DiagramParser {
     double area = 0;
     for (int i = 0; i < corners.size(); i++) {
       Point2D.Float a = corners.get(i), b = corners.get((i + 1) % corners.size());
-      area += a.x * b.y - b.x * a.y;
+      // Widen each product before subtracting to retain fractional area differences.
+      area += a.x * b.y;
+      area -= b.x * a.y;
     }
     return Math.abs(area / 2);
   }
