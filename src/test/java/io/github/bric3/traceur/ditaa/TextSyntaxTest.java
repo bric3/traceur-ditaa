@@ -2,7 +2,6 @@
 package io.github.bric3.traceur.ditaa;
 
 import static org.junit.jupiter.api.Assertions.*;
-
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
@@ -11,9 +10,10 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class TextSyntaxTest {
   private static List<String> labels(String text) {
-    return DiagramParser.parse(text, RenderOptions.DEFAULT).labels.stream()
-        .map(label -> label.text)
-        .collect(Collectors.toList());
+    return DiagramParser.parse(text, RenderOptions.DEFAULT).labels
+      .stream()
+      .map(label -> label.text)
+      .collect(Collectors.toList());
   }
 
   @Test
@@ -68,20 +68,24 @@ class TextSyntaxTest {
   @ParameterizedTest
   @ValueSource(strings = {"o", "*"})
   void bulletsMoveIntoTheFollowingSpaceAndConsecutiveRowsAlign(String marker) {
-    var drawing =
-        DiagramParser.parse(
-            marker + " Text\n" + marker + " More text\n" + marker + " Third",
-            RenderOptions.DEFAULT);
+    var drawing = DiagramParser.parse(
+        marker + " Text\n" + marker + " More text\n" + marker + " Third",
+        RenderOptions.DEFAULT
+    );
     assertEquals(
-        List.of("\u2022Text", "\u2022More text", "\u2022Third"),
-        drawing.labels.stream().map(label -> label.text).collect(Collectors.toList()));
+        List.of("•Text", "•More text", "•Third"),
+        drawing.labels
+          .stream()
+          .map(label -> label.text)
+          .collect(Collectors.toList())
+    );
     assertEquals(30, drawing.labels.get(0).x);
     assertEquals(30, drawing.labels.get(1).x);
     assertEquals(30, drawing.labels.get(2).x);
     assertTrue(drawing.figures.isEmpty());
     assertEquals(List.of("fooo bar", "o ", "bar", "o "), labels("fooo bar\no  bar\no"));
-    assertEquals(List.of("\u2022élan"), labels(marker + " élan"));
-    assertEquals(List.of("\u2022١23"), labels(marker + " ١23"));
+    assertEquals(List.of("•élan"), labels(marker + " élan"));
+    assertEquals(List.of("•١23"), labels(marker + " ١23"));
   }
 
   @Test
@@ -91,11 +95,10 @@ class TextSyntaxTest {
     assertTrue(label.font.getSize2D() < drawing.font().getSize2D());
     assertEquals(Math.floor(label.font.getSize2D()), label.font.getSize2D());
     assertTrue(
-        label
-                .font
-                .getStringBounds(label.text, new java.awt.font.FontRenderContext(null, true, false))
-                .getWidth()
-            <= 60);
+        label.font
+          .getStringBounds(label.text, new java.awt.font.FontRenderContext(null, true, false))
+          .getWidth() <= 60
+    );
     assertEquals("WWWWWW", label.text);
   }
 
@@ -117,16 +120,16 @@ class TextSyntaxTest {
     var lower = DiagramParser.parse("|\nv", RenderOptions.DEFAULT);
     assertEquals(2, upper.figures.size());
     assertTrue(upper.labels.isEmpty());
-    var upperArrow =
-        upper.figures.stream()
-            .filter(figure -> figure.kind == Drawing.Figure.Kind.ARROW)
-            .findFirst()
-            .orElseThrow();
-    var lowerArrow =
-        lower.figures.stream()
-            .filter(figure -> figure.kind == Drawing.Figure.Kind.ARROW)
-            .findFirst()
-            .orElseThrow();
+    var upperArrow = upper.figures
+      .stream()
+      .filter(figure -> figure.kind == Drawing.Figure.Kind.ARROW)
+      .findFirst()
+      .orElseThrow();
+    var lowerArrow = lower.figures
+      .stream()
+      .filter(figure -> figure.kind == Drawing.Figure.Kind.ARROW)
+      .findFirst()
+      .orElseThrow();
     assertEquals(upperArrow.path.getBounds2D(), lowerArrow.path.getBounds2D());
   }
 }

@@ -16,7 +16,8 @@ import java.util.Arrays;
 import javax.imageio.ImageIO;
 
 final class PngWriter {
-  private PngWriter() {}
+  private PngWriter() {
+  }
 
   static void write(Drawing drawing, OutputStream output) throws IOException {
     BufferedImage image =
@@ -29,7 +30,7 @@ final class PngWriter {
         shadow.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         shadow.setColor(new Color(150, 150, 150));
         // PNG shadows retain region discovery order before fills are sorted by area.
-        for (Drawing.Figure figure : drawing.shadowFigures)
+        for (Drawing.Figure figure : drawing.shadowFigures) {
           if (figure.shadow) {
             Path2D.Float shifted = new Path2D.Float(figure.path);
             // The reference displaces shadows by this fraction of a character cell.
@@ -37,13 +38,14 @@ final class PngWriter {
             shifted.transform(AffineTransform.getTranslateInstance(offset, offset));
             shadow.fill(shifted);
           }
+        }
       } finally {
         shadow.dispose();
       }
       float[] kernel = new float[36];
       Arrays.fill(kernel, 1f / 36);
-      image =
-          new ConvolveOp(new Kernel(6, 6, kernel), ConvolveOp.EDGE_NO_OP, null).filter(image, null);
+      image = new ConvolveOp(new Kernel(6, 6, kernel), ConvolveOp.EDGE_NO_OP, null)
+        .filter(image, null);
     }
     Graphics2D graphics = image.createGraphics();
     try {
@@ -53,24 +55,35 @@ final class PngWriter {
       }
       graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
       graphics.setRenderingHint(
-          RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+          RenderingHints.KEY_TEXT_ANTIALIASING,
+          RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+      );
       BasicStroke solid = null;
       BasicStroke dashed = null;
       for (Drawing.Figure figure : drawing.figures) {
         if (figure.dashed) {
-          if (dashed == null) dashed = new BasicStroke(
-                    (float) drawing.scale,
-                    BasicStroke.CAP_BUTT,
-                    BasicStroke.JOIN_ROUND,
-                    10,
-                    new float[] {
-                      Math.max(1, (int) (5 * drawing.scale)), Math.max(1, (int) (5 * drawing.scale))
-                    },
-                    0);
+          if (dashed == null) {
+            dashed = new BasicStroke(
+                (float) drawing.scale,
+                BasicStroke.CAP_BUTT,
+                BasicStroke.JOIN_ROUND,
+                10,
+                new float[] {
+                Math.max(1, (int) (5 * drawing.scale)),
+                Math.max(1, (int) (5 * drawing.scale))
+                },
+                0
+            );
+          }
           graphics.setStroke(dashed);
         } else {
-          if (solid == null) solid = new BasicStroke(
-                    (float) drawing.scale, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
+          if (solid == null) {
+            solid = new BasicStroke(
+                (float) drawing.scale,
+                BasicStroke.CAP_ROUND,
+                BasicStroke.JOIN_ROUND
+            );
+          }
           graphics.setStroke(solid);
         }
         if (figure.fill != null && !figure.dashed) {
@@ -78,7 +91,9 @@ final class PngWriter {
           graphics.fill(figure.path);
         }
         graphics.setColor(Color.BLACK);
-        if (figure.kind != Drawing.Figure.Kind.ARROW) graphics.draw(figure.path);
+        if (figure.kind != Drawing.Figure.Kind.ARROW) {
+          graphics.draw(figure.path);
+        }
       }
       for (Drawing.Label label : drawing.labels) {
         graphics.setFont(label.font);
@@ -88,6 +103,8 @@ final class PngWriter {
     } finally {
       graphics.dispose();
     }
-    if (!ImageIO.write(image, "png", output)) throw new IOException("No PNG encoder available");
+    if (!ImageIO.write(image, "png", output)) {
+      throw new IOException("No PNG encoder available");
+    }
   }
 }

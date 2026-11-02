@@ -9,92 +9,113 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 final class SvgWriter {
-  private SvgWriter() {}
+  private SvgWriter() {
+  }
 
   static void write(Drawing drawing, OutputStream output) throws IOException {
     StringBuilder svg = new StringBuilder();
     StringBuilder pathData = new StringBuilder();
     double[] coords = new double[6];
-    svg.append("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"")
-        .append(drawing.width)
-        .append("\" height=\"")
-        .append(drawing.height)
-        .append("\" viewBox=\"0 0 ")
-        .append(drawing.width)
-        .append(' ')
-        .append(drawing.height)
-        .append("\">\n")
-        .append("<defs><filter id=\"shadow\" x=\"0\" y=\"0\" width=\"200%\" height=\"200%\">")
-        .append("<feOffset in=\"SourceGraphic\" dx=\"5\" dy=\"5\" result=\"offset\"/>")
-        .append("<feGaussianBlur in=\"offset\" stdDeviation=\"3\" result=\"blur\"/>")
-        .append("<feBlend in=\"SourceGraphic\" in2=\"blur\" mode=\"normal\"/>")
-        .append("</filter></defs>\n")
-        .append("<rect width=\"100%\" height=\"100%\" fill=\"white\"/>\n")
-        .append("<g stroke=\"black\" stroke-width=\"")
-        .append(number(drawing.scale))
-        .append("\" stroke-linejoin=\"round\" stroke-linecap=\"round\">\n");
+    svg
+      .append("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"")
+      .append(drawing.width)
+      .append("\" height=\"")
+      .append(drawing.height)
+      .append("\" viewBox=\"0 0 ")
+      .append(drawing.width)
+      .append(' ')
+      .append(drawing.height)
+      .append("\">\n")
+      .append("<defs><filter id=\"shadow\" x=\"0\" y=\"0\" width=\"200%\" height=\"200%\">")
+      .append("<feOffset in=\"SourceGraphic\" dx=\"5\" dy=\"5\" result=\"offset\"/>")
+      .append("<feGaussianBlur in=\"offset\" stdDeviation=\"3\" result=\"blur\"/>")
+      .append("<feBlend in=\"SourceGraphic\" in2=\"blur\" mode=\"normal\"/>")
+      .append("</filter></defs>\n")
+      .append("<rect width=\"100%\" height=\"100%\" fill=\"white\"/>\n")
+      .append("<g stroke=\"black\" stroke-width=\"")
+      .append(number(drawing.scale))
+      .append("\" stroke-linejoin=\"round\" stroke-linecap=\"round\">\n");
     for (Drawing.Figure figure : drawing.figures) {
-      if (drawing.shadows && figure.shadow)
-        svg.append("<path d=\"")
-            .append(path(figure.path, pathData, coords))
-            .append(
-                "\" fill=\"gray\" stroke=\"gray\" stroke-width=\"1\" stroke-linecap=\"square\""
-                    + " filter=\"url(#shadow)\"/>\n");
+      if (drawing.shadows && figure.shadow) {
+        svg
+          .append("<path d=\"")
+          .append(path(figure.path, pathData, coords))
+          .append(
+              "\" fill=\"gray\" stroke=\"gray\" stroke-width=\"1\" stroke-linecap=\"square\""
+              + " filter=\"url(#shadow)\"/>\n"
+          );
+      }
     }
     for (Drawing.Figure figure : drawing.figures) {
       figure(svg, figure, drawing.scale, pathData, coords);
     }
     svg.append("<g stroke=\"none\" font-family=\"Courier\" font-size=\"15\">\n");
     for (Drawing.Label label : drawing.labels) {
-      svg.append("<text x=\"")
-          .append(number(label.x))
-          .append("\" y=\"")
-          .append(number(label.y))
-          .append("\" fill=\"")
-          .append(colour(label.colour))
-          .append("\" font-size=\"")
-          .append(label.font.getSize())
-          .append("\">")
-          .append(escape(label.text))
-          .append("</text>\n");
+      svg
+        .append("<text x=\"")
+        .append(number(label.x))
+        .append("\" y=\"")
+        .append(number(label.y))
+        .append("\" fill=\"")
+        .append(colour(label.colour))
+        .append("\" font-size=\"")
+        .append(label.font.getSize())
+        .append("\">")
+        .append(escape(label.text))
+        .append("</text>\n");
     }
     svg.append("</g>\n</g>\n</svg>\n");
     output.write(svg.toString().getBytes(StandardCharsets.UTF_8));
   }
 
-  private static void figure(StringBuilder svg, Drawing.Figure figure, double scale,
-      StringBuilder pathData, double[] coords) {
+  private static void figure(
+      StringBuilder svg,
+      Drawing.Figure figure,
+      double scale,
+      StringBuilder pathData,
+      double[] coords
+  ) {
     CharSequence path = path(figure.path, pathData, coords);
     boolean separateFill = figure.kind == Drawing.Figure.Kind.STORAGE;
     if (separateFill) {
-      svg.append("<path d=\"")
-          .append(path)
-          .append("\" fill=\"")
-          .append(figure.dashed ? "none" : colour(figure.fill))
-          .append("\" stroke=\"white\"");
-      if (figure.dashed) dashes(svg, scale);
-      svg.append("/>\n");
-    }
-    svg.append("<path d=\"")
+      svg
+        .append("<path d=\"")
         .append(path)
         .append("\" fill=\"")
-        .append(
-            separateFill
-                ? "none"
-                : figure.dashed ? "white" : figure.fill == null ? "none" : colour(figure.fill))
-        .append('"');
-    if (figure.dashed) dashes(svg, scale);
-    if (figure.kind == Drawing.Figure.Kind.ARROW) svg.append(" stroke=\"none\"");
+        .append(figure.dashed ? "none" : colour(figure.fill))
+        .append("\" stroke=\"white\"");
+      if (figure.dashed) {
+        dashes(svg, scale);
+      }
+      svg.append("/>\n");
+    }
+    svg
+      .append("<path d=\"")
+      .append(path)
+      .append("\" fill=\"")
+      .append(
+          separateFill ? "none" : figure.dashed
+          ? "white"
+          : figure.fill == null ? "none" : colour(figure.fill)
+      )
+      .append('"');
+    if (figure.dashed) {
+      dashes(svg, scale);
+    }
+    if (figure.kind == Drawing.Figure.Kind.ARROW) {
+      svg.append(" stroke=\"none\"");
+    }
     svg.append("/>\n");
   }
 
   private static void dashes(StringBuilder svg, double scale) {
     int dash = Math.max(1, (int) (5 * scale));
-    svg.append(" stroke-dasharray=\"")
-        .append(dash)
-        .append(' ')
-        .append(dash)
-        .append("\" stroke-linecap=\"butt\"");
+    svg
+      .append(" stroke-dasharray=\"")
+      .append(dash)
+      .append(' ')
+      .append(dash)
+      .append("\" stroke-linecap=\"butt\"");
   }
 
   private static CharSequence path(Shape shape, StringBuilder result, double[] coords) {
@@ -126,7 +147,9 @@ final class SvgWriter {
         default:
           throw new IllegalStateException("Unknown path segment");
       }
-      for (int i = 0; i < count; i++) result.append(i == 0 ? "" : " ").append(number(coords[i]));
+      for (int i = 0; i < count; i++) {
+        result.append(i == 0 ? "" : " ").append(number(coords[i]));
+      }
     }
     return result;
   }
@@ -141,10 +164,11 @@ final class SvgWriter {
   }
 
   private static String escape(String text) {
-    return text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("\"", "&quot;")
-        .replace("'", "&apos;");
+    return text
+      .replace("&", "&amp;")
+      .replace("<", "&lt;")
+      .replace(">", "&gt;")
+      .replace("\"", "&quot;")
+      .replace("'", "&apos;");
   }
 }

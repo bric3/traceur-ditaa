@@ -2,7 +2,6 @@
 package io.github.bric3.traceur.ditaa;
 
 import static org.junit.jupiter.api.Assertions.*;
-
 import java.awt.Color;
 import java.awt.geom.Path2D;
 import java.io.ByteArrayInputStream;
@@ -18,11 +17,12 @@ class SvgEncodingTest {
   void dashedStorageHasTwoUnfilledDashedStrokes() throws Exception {
     var output = new ByteArrayOutputStream();
     new DitaaRenderer()
-        .render(
-            "+=======+\n: {s}   :\n+=======+",
-            new RenderOptions(1, false, true),
-            OutputFormat.SVG,
-            output);
+      .render(
+          "+=======+\n: {s}   :\n+=======+",
+          new RenderOptions(1, false, true),
+          OutputFormat.SVG,
+          output
+      );
     var paths = parse(output.toByteArray()).getElementsByTagNameNS("*", "path");
     assertEquals(2, paths.getLength());
     var underlay = (Element) paths.item(0);
@@ -47,8 +47,12 @@ class SvgEncodingTest {
   @Test
   void textOutsideAnArrowTriangleKeepsBlackForeground() throws Exception {
     var output = new ByteArrayOutputStream();
-    new DitaaRenderer()
-        .render(" i\n >", new RenderOptions(1, false, true), OutputFormat.SVG, output);
+    new DitaaRenderer().render(
+        " i\n >",
+        new RenderOptions(1, false, true),
+        OutputFormat.SVG,
+        output
+    );
     Element text =
         (Element) parse(output.toByteArray()).getElementsByTagNameNS("*", "text").item(0);
     assertEquals("#000000", text.getAttribute("fill"));
@@ -57,8 +61,12 @@ class SvgEncodingTest {
   @Test
   void textWhoseLogicalBoundsIntersectAnArrowUsesWhiteForeground() throws Exception {
     var output = new ByteArrayOutputStream();
-    new DitaaRenderer()
-        .render("^\nText", new RenderOptions(1, false, true), OutputFormat.SVG, output);
+    new DitaaRenderer().render(
+        "^\nText",
+        new RenderOptions(1, false, true),
+        OutputFormat.SVG,
+        output
+    );
     Element text =
         (Element) parse(output.toByteArray()).getElementsByTagNameNS("*", "text").item(0);
     assertEquals("Text", text.getTextContent());
@@ -69,7 +77,7 @@ class SvgEncodingTest {
   void textOutsideAnArrowsLogicalBoundsKeepsBlackForeground() throws Exception {
     var output = new ByteArrayOutputStream();
     new DitaaRenderer()
-        .render("^\n\nText", new RenderOptions(1, false, true), OutputFormat.SVG, output);
+      .render("^\n\nText", new RenderOptions(1, false, true), OutputFormat.SVG, output);
     Element text =
         (Element) parse(output.toByteArray()).getElementsByTagNameNS("*", "text").item(0);
     assertEquals("#000000", text.getAttribute("fill"));
@@ -79,25 +87,27 @@ class SvgEncodingTest {
   void roundedContourStartsAtTheFirstBoundaryCorner() throws Exception {
     var output = new ByteArrayOutputStream();
     new DitaaRenderer()
-        .render(
-            "    /--\\\n    |  |\n    \\--/",
-            new RenderOptions(1, false, true),
-            OutputFormat.SVG,
-            output);
+      .render(
+          "    /--\\\n    |  |\n    \\--/",
+          new RenderOptions(1, false, true),
+          OutputFormat.SVG,
+          output
+      );
     Element path =
         (Element) parse(output.toByteArray()).getElementsByTagNameNS("*", "path").item(0);
     assertEquals(
         "M65 56Q65 63 70 63L90 63Q95 63 95 56L95 42Q95 35 90 35L70 35Q65 35 65 42Z",
-        path.getAttribute("d"));
+        path.getAttribute("d")
+    );
   }
 
   @TableTest({
-    "column | row | x | y",
-    "0 | 0 | 30 | 35",
-    "4 | 0 | 65 | 56",
-    "0 | 3 | 55 | 84",
-    "4 | 3 | 65 | 98",
-    "19 | 0 | 215 | 56"
+    "column | row | x   | y ",
+    "0      | 0   | 30  | 35",
+    "4      | 0   | 65  | 56",
+    "0      | 3   | 55  | 84",
+    "4      | 3   | 65  | 98",
+    "19     | 0   | 215 | 56"
   })
   void roundedContourStartsFollowPaddedBoundaryCells(int column, int row, int x, int y)
       throws Exception {
@@ -114,16 +124,18 @@ class SvgEncodingTest {
   void roundedContourCanFollowTheOppositeBoundaryDirection() throws Exception {
     var output = new ByteArrayOutputStream();
     new DitaaRenderer()
-        .render(
-            "       /====\\\n       :    :\n       \\====+",
-            new RenderOptions(1, false, true),
-            OutputFormat.SVG,
-            output);
+      .render(
+          "       /====\\\n       :    :\n       \\====+",
+          new RenderOptions(1, false, true),
+          OutputFormat.SVG,
+          output
+      );
     Element path =
         (Element) parse(output.toByteArray()).getElementsByTagNameNS("*", "path").item(0);
     assertEquals(
         "M140 35Q145 35 145 42L145 63L100 63Q95 63 95 56L95 42Q95 35 100 35Z",
-        path.getAttribute("d"));
+        path.getAttribute("d")
+    );
   }
 
   @Test
@@ -131,7 +143,8 @@ class SvgEncodingTest {
     String text = "café 日本語 😀 <A & B> \"quoted\" 'apostrophe'";
     var drawing = new Drawing(400, 80, new RenderOptions(1, false, true));
     drawing.labels.add(
-        new Drawing.Label(text, 20, 35, Color.BLACK, 10, drawing.font(), Drawing.TextAlignment.LEFT));
+        new Drawing.Label(text, 20, 35, Color.BLACK, 10, drawing.font(), Drawing.TextAlignment.LEFT)
+    );
     var output = new ByteArrayOutputStream();
     SvgWriter.write(drawing, output);
     Document document = parse(output.toByteArray());
@@ -150,64 +163,67 @@ class SvgEncodingTest {
     path.curveTo(9.5, 10.25, 11.75, 12.5, 13.25, 14.75);
     path.closePath();
     drawing.figures.add(
-        new Drawing.Figure(path, new Color(0x000abc), false, Drawing.Figure.Kind.REGION, 0));
+        new Drawing.Figure(path, new Color(0x000abc), false, Drawing.Figure.Kind.REGION, 0)
+    );
     var output = new ByteArrayOutputStream();
     SvgWriter.write(drawing, output);
     Element rendered =
         (Element) parse(output.toByteArray()).getElementsByTagNameNS("*", "path").item(0);
     assertEquals(
         "M1.25 2.5L3.5 4.75Q5.25 6.5 7.75 8.25C9.5 10.25 11.75 12.5 13.25 14.75Z",
-        rendered.getAttribute("d"));
+        rendered.getAttribute("d")
+    );
     assertEquals("#000abc", rendered.getAttribute("fill"));
   }
 
   @TableTest({
     "code | expected",
-    "RED | ee3322",
-    "BLU | 5555bb",
-    "GRE | 99dd99",
-    "PNK | ffaaaa",
-    "BLK | 000000",
-    "YEL | ffff33",
-    "0AF | 00aaff",
-    "F0A | ff00aa"
+    "RED  | ee3322  ",
+    "BLU  | 5555bb  ",
+    "GRE  | 99dd99  ",
+    "PNK  | ffaaaa  ",
+    "BLK  | 000000  ",
+    "YEL  | ffff33  ",
+    "0AF  | 00aaff  ",
+    "F0A  | ff00aa  "
   })
-  void namedAndHexadecimalColoursReachTheEncodedShape(String code, String expected)
-      throws Exception {
+  void namedAndHexadecimalColoursReachTheEncodedShape(String code, String expected) throws Exception {
     var output = new ByteArrayOutputStream();
     String text = "+---------+\n| c" + code + "    |\n|         |\n+---------+";
     new DitaaRenderer().render(text, new RenderOptions(1, false, true), OutputFormat.SVG, output);
     Document document = parse(output.toByteArray());
     assertEquals(
         "#" + expected,
-        ((Element) document.getElementsByTagNameNS("*", "path").item(0)).getAttribute("fill"));
+        ((Element) document.getElementsByTagNameNS("*", "path").item(0)).getAttribute("fill")
+    );
     assertEquals(0, document.getElementsByTagNameNS("*", "text").getLength());
   }
 
   @TableTest({
     "background | foreground",
-    "000 | ffffff",
-    "BBB | ffffff",
-    "CCC | 000000",
-    "B00 | ffffff",
-    "C00 | 000000",
-    "0B0 | ffffff",
-    "0C0 | 000000",
-    "00B | ffffff",
-    "00C | 000000",
-    "RED | 000000",
-    "BLU | ffffff",
-    "FFF | 000000"
+    "000        | ffffff    ",
+    "BBB        | ffffff    ",
+    "CCC        | 000000    ",
+    "B00        | ffffff    ",
+    "C00        | 000000    ",
+    "0B0        | ffffff    ",
+    "0C0        | 000000    ",
+    "00B        | ffffff    ",
+    "00C        | 000000    ",
+    "RED        | 000000    ",
+    "BLU        | ffffff    ",
+    "FFF        | 000000    "
   })
   void textUsesTheReferenceForegroundForShapeColours(String background, String foreground)
       throws Exception {
     var output = new ByteArrayOutputStream();
     new DitaaRenderer()
-        .render(
-            "+---------+\n| c" + background + "    |\n|    X    |\n+---------+",
-            new RenderOptions(1, false, true),
-            OutputFormat.SVG,
-            output);
+      .render(
+          "+---------+\n| c" + background + "    |\n|    X    |\n+---------+",
+          new RenderOptions(1, false, true),
+          OutputFormat.SVG,
+          output
+      );
     Element text =
         (Element) parse(output.toByteArray()).getElementsByTagNameNS("*", "text").item(0);
     assertEquals("X ", text.getTextContent());

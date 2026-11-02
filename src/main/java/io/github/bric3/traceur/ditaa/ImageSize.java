@@ -1,7 +1,9 @@
 /* SPDX-License-Identifier: MPL-2.0 */
 package io.github.bric3.traceur.ditaa;
 
-/** Dimensions of the encoded image, in pixels. */
+/**
+ * Dimensions of the encoded image, in pixels.
+ */
 public final class ImageSize {
   private final int width;
   private final int height;

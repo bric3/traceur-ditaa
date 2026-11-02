@@ -3,7 +3,6 @@ package io.github.bric3.traceur.ditaa;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 

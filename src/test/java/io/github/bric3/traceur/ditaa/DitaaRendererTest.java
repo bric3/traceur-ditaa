@@ -2,7 +2,6 @@
 package io.github.bric3.traceur.ditaa;
 
 import static org.junit.jupiter.api.Assertions.*;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -43,7 +42,8 @@ class DitaaRendererTest {
     var document = factory.newDocumentBuilder().parse(new ByteArrayInputStream(svg));
     assertEquals(
         "R&D \"quoted\" 'apostrophe'",
-        document.getElementsByTagName("text").item(0).getTextContent());
+        document.getElementsByTagName("text").item(0).getTextContent()
+    );
     assertEquals(0, document.getElementsByTagName("image").getLength());
   }
 
@@ -51,20 +51,23 @@ class DitaaRendererTest {
   void closedShapesAreFilledAndMarkupIsRemoved() throws Exception {
     var drawing =
         DiagramParser.parse("+-------+\n| cRED  |\n| {s} X |\n+-------+", RenderOptions.DEFAULT);
-    assertTrue(drawing.figures.stream().anyMatch(f -> new java.awt.Color(0xee3322).equals(f.fill)));
+    assertTrue(drawing.figures
+      .stream()
+      .anyMatch(f -> new java.awt.Color(0xee3322).equals(f.fill)));
     assertEquals(List.of("X "), List.of(drawing.labels.get(0).text));
-    assertTrue(
-        new String(render(BOX, OutputFormat.SVG), java.nio.charset.StandardCharsets.UTF_8)
-            .contains("<path"));
+    assertTrue(new String(render(BOX, OutputFormat.SVG), java.nio.charset.StandardCharsets.UTF_8)
+      .contains("<path")
+    );
   }
 
   @Test
   void sharedAndNestedBoundariesProduceSeparateFilledRegions() {
     Drawing shared = DiagramParser.parse("+---+---+\n| A | B |\n+---+---+", RenderOptions.DEFAULT);
     assertEquals(2, shared.figures.stream().filter(f -> f.shadow).count());
-    Drawing nested =
-        DiagramParser.parse(
-            "+-------+\n| +---+ |\n| | X | |\n| +---+ |\n+-------+", RenderOptions.DEFAULT);
+    Drawing nested = DiagramParser.parse(
+        "+-------+\n| +---+ |\n| | X | |\n| +---+ |\n+-------+",
+        RenderOptions.DEFAULT
+    );
     assertEquals(2, nested.figures.stream().filter(f -> f.shadow).count());
   }
 
@@ -90,23 +93,31 @@ class DitaaRendererTest {
     assertTrue(drawing.labels.isEmpty());
     assertTrue(drawing.figures.stream().anyMatch(f -> f.dashed));
     assertEquals(
-        2, drawing.figures.stream().filter(f -> java.awt.Color.BLACK.equals(f.fill)).count());
+        2,
+        drawing.figures
+          .stream()
+          .filter(f -> java.awt.Color.BLACK.equals(f.fill))
+          .count()
+    );
   }
 
   @Test
   void lineEndingsAndTrailingNewlinesDoNotChangeOutput() throws Exception {
     assertArrayEquals(
         render(BOX, OutputFormat.PNG),
-        render(BOX.replace("\n", "\r\n") + "\r\n", OutputFormat.PNG));
+        render(BOX.replace("\n", "\r\n") + "\r\n", OutputFormat.PNG)
+    );
     assertArrayEquals(
-        render("\tHello", OutputFormat.SVG), render("        Hello", OutputFormat.SVG));
+        render("\tHello", OutputFormat.SVG),
+        render("        Hello", OutputFormat.SVG)
+    );
   }
 
   @Test
   void unicodeAndEmptyInputsRender() throws Exception {
     assertTrue(render("café 日本語 😀", OutputFormat.PNG).length > 100);
     assertTrue(render("", OutputFormat.PNG).length > 50);
-    assertThrows(IllegalArgumentException.class, () -> render("\ud800", OutputFormat.SVG));
+    assertThrows(IllegalArgumentException.class, () -> render("\uD800", OutputFormat.SVG));
     assertThrows(IllegalArgumentException.class, () -> render("\u0000", OutputFormat.SVG));
   }
 
@@ -116,11 +127,13 @@ class DitaaRendererTest {
       assertThrows(IllegalArgumentException.class, () -> new RenderOptions(scale, true, true));
     }
     var output = new ByteArrayOutputStream();
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> renderer.render(BOX, new RenderOptions(1e20, true, true), OutputFormat.PNG, output));
-    assertThrows(
-        IllegalArgumentException.class, () -> render("x".repeat(250001), OutputFormat.PNG));
+    assertThrows(IllegalArgumentException.class, () -> renderer.render(
+        BOX,
+        new RenderOptions(1e20, true, true),
+        OutputFormat.PNG,
+        output
+    ));
+    assertThrows(IllegalArgumentException.class, () -> render("x".repeat(250001), OutputFormat.PNG));
     assertEquals(0, output.size());
   }
 
@@ -134,29 +147,30 @@ class DitaaRendererTest {
 
   @Test
   void streamOwnershipAndFailuresBelongToCaller() throws Exception {
-    var stream =
-        new ByteArrayOutputStream() {
-          @Override
-          public void close() {
-            fail("Closed caller stream");
-          }
+    var stream = new ByteArrayOutputStream() {
+      @Override
+      public void close() {
+        fail("Closed caller stream");
+      }
 
-          @Override
-          public void flush() {
-            fail("Flushed caller stream");
-          }
-        };
+      @Override
+      public void flush() {
+        fail("Flushed caller stream");
+      }
+    };
     renderer.render(BOX, RenderOptions.DEFAULT, OutputFormat.SVG, stream);
-    OutputStream failing =
-        new OutputStream() {
-          @Override
-          public void write(int b) throws IOException {
-            throw new IOException("disk full");
-          }
-        };
-    assertThrows(
-        IOException.class,
-        () -> renderer.render(BOX, RenderOptions.DEFAULT, OutputFormat.PNG, failing));
+    OutputStream failing = new OutputStream() {
+      @Override
+      public void write(int b) throws IOException {
+        throw new IOException("disk full");
+      }
+    };
+    assertThrows(IOException.class, () -> renderer.render(
+        BOX,
+        RenderOptions.DEFAULT,
+        OutputFormat.PNG,
+        failing
+    ));
   }
 
   @Test
@@ -172,16 +186,16 @@ class DitaaRendererTest {
         var output = new ByteArrayOutputStream();
         renderer.render(text, options, format, output);
         expected.add(output.toByteArray());
-        tasks.add(
-            () -> {
-              var concurrent = new ByteArrayOutputStream();
-              renderer.render(text, options, format, concurrent);
-              return concurrent.toByteArray();
-            });
+        tasks.add(() -> {
+          var concurrent = new ByteArrayOutputStream();
+          renderer.render(text, options, format, concurrent);
+          return concurrent.toByteArray();
+        });
       }
       var results = executor.invokeAll(tasks);
-      for (int i = 0; i < results.size(); i++)
+      for (int i = 0; i < results.size(); i++) {
         assertArrayEquals(expected.get(i), results.get(i).get());
+      }
     } finally {
       executor.shutdownNow();
     }

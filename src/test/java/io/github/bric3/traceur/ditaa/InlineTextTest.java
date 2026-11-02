@@ -2,14 +2,16 @@
 package io.github.bric3.traceur.ditaa;
 
 import static org.junit.jupiter.api.Assertions.*;
-
 import java.awt.Color;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.converter.ConvertWith;
 import org.tabletest.junit.TableTest;
 
 class InlineTextTest {
-  @TableTest({"Text", "{A, 9, é, 漢, v, V}"})
+  @TableTest({
+    "Text               ",
+    "{A, 9, é, 漢, v, V}"
+  })
   void aLetterOrDigitWithinAHorizontalLineKeepsItsLabel(String text) {
     var drawing = DiagramParser.parse("---" + text + "---", RenderOptions.DEFAULT);
     assertEquals(1, drawing.figures.size());
@@ -21,7 +23,10 @@ class InlineTextTest {
     assertEquals(text, drawing.labels.get(0).text.stripTrailing());
   }
 
-  @TableTest({"Text", "{A, 9, é, 漢}"})
+  @TableTest({
+    "Text         ",
+    "{A, 9, é, 漢}"
+  })
   void aLetterOrDigitWithinAVerticalLineKeepsItsLabel(String text) {
     var drawing = DiagramParser.parse("|\n" + text + "\n|", RenderOptions.DEFAULT);
     assertEquals(1, drawing.figures.size());
@@ -33,7 +38,10 @@ class InlineTextTest {
     assertEquals(text, drawing.labels.get(0).text.stripTrailing());
   }
 
-  @TableTest({"Arrow", "{v, V}"})
+  @TableTest({
+    "Arrow ",
+    "{v, V}"
+  })
   void aDownwardArrowBetweenVerticalShaftCellsBecomesPartOfTheLine(String arrow) {
     var drawing = DiagramParser.parse("|\n" + arrow + "\n|", RenderOptions.DEFAULT);
     assertEquals(1, drawing.figures.size());
@@ -42,24 +50,34 @@ class InlineTextTest {
     assertTrue(drawing.labels.isEmpty());
   }
 
-  @TableTest({"Arrows", "{vv, VV}"})
+  @TableTest({
+    "Arrows  ",
+    "{vv, VV}"
+  })
   void neighbouringDownwardArrowheadsKeepTheirOwnShafts(String arrows) {
     var drawing = DiagramParser.parse("||\n" + arrows, RenderOptions.DEFAULT);
     assertEquals(4, drawing.figures.size());
     assertEquals(
         2,
-        drawing.figures.stream()
-            .filter(figure -> figure.kind == Drawing.Figure.Kind.ARROW)
-            .count());
+        drawing.figures
+          .stream()
+          .filter(figure -> figure.kind == Drawing.Figure.Kind.ARROW)
+          .count()
+    );
     assertTrue(drawing.labels.isEmpty());
   }
 
-  @TableTest({"Text", "{_, /, !, ' '}"})
+  @TableTest({
+    "Text          ",
+    "{_, /, !, ' '}"
+  })
   void symbolsAndSpacesKeepTheGapBetweenHorizontalShafts(String text) {
     var drawing = DiagramParser.parse("--" + text + "--", RenderOptions.DEFAULT);
     assertEquals(2, drawing.figures.size());
-    assertTrue(
-        drawing.figures.stream().allMatch(figure -> figure.path.getBounds2D().getWidth() == 10));
+    assertTrue(drawing.figures
+      .stream()
+      .allMatch(figure -> figure.path.getBounds2D().getWidth() == 10)
+    );
   }
 
   @Test
@@ -84,9 +102,11 @@ class InlineTextTest {
     assertEquals(2, drawing.figures.size());
     assertEquals(
         1,
-        drawing.figures.stream()
-            .filter(figure -> figure.kind == Drawing.Figure.Kind.ARROW)
-            .count());
+        drawing.figures
+          .stream()
+          .filter(figure -> figure.kind == Drawing.Figure.Kind.ARROW)
+          .count()
+    );
     assertEquals(1, drawing.labels.size());
     assertEquals("a b", drawing.labels.get(0).text);
     assertEquals(Color.BLACK, drawing.labels.get(0).colour);
@@ -101,8 +121,14 @@ class InlineTextTest {
     assertEquals("v", drawing.labels.get(0).text.stripTrailing());
   }
 
-  @TableTest({"Diagram", "'^\\nText'", "'|\\nv\\nText'"})
-  void anArrowheadSelectsWhiteTextWhenItsShaftDoesNotIntersectTheText(@ConvertWith(DiagramConverter.class) String text) {
+  @TableTest({
+    "Diagram       ",
+    "'^\\nText'    ",
+    "'|\\nv\\nText'"
+  })
+  void anArrowheadSelectsWhiteTextWhenItsShaftDoesNotIntersectTheText(
+      @ConvertWith(DiagramConverter.class) String text
+  ) {
     var drawing = DiagramParser.parse(text, RenderOptions.DEFAULT);
     assertEquals(1, drawing.labels.size());
     assertEquals(Color.WHITE, drawing.labels.get(0).colour);
@@ -110,15 +136,15 @@ class InlineTextTest {
 
   @Test
   void anIntersectingConnectorSelectsBlackTextInsideADarkRegion() {
-    var drawing =
-        DiagramParser.parse(
-            "+------------+\n"
-                + "|cBLK        |\n"
-                + "|  |         |\n"
-                + "| avb        |\n"
-                + "|            |\n"
-                + "+------------+",
-            RenderOptions.DEFAULT);
+    var drawing = DiagramParser.parse(
+        "+------------+\n"
+        + "|cBLK        |\n"
+        + "|  |         |\n"
+        + "| avb        |\n"
+        + "|            |\n"
+        + "+------------+",
+        RenderOptions.DEFAULT
+    );
     assertEquals(1, drawing.labels.size());
     assertEquals("a b", drawing.labels.get(0).text);
     assertEquals(Color.BLACK, drawing.labels.get(0).colour);

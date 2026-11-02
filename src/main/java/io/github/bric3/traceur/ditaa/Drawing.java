@@ -41,13 +41,17 @@ final class Drawing {
   }
 
   Font font() {
-    if (font == null) font = fontFor(cellHeight);
+    if (font == null) {
+      font = fontFor(cellHeight);
+    }
     return font;
   }
 
   private static Font fontFor(int height) {
     // A 12-pixel cell retains the reference's 12.5-point default.
-    if (height == 12) return FONT.deriveFont(12.5f);
+    if (height == 12) {
+      return FONT.deriveFont(12.5f);
+    }
     var canvas = new Canvas();
     // Small cells leave one ascent pixel free; larger cells use the full height.
     int limit = height < 12 ? height - 1 : height;
@@ -106,7 +110,8 @@ final class Drawing {
         Color colour,
         int cellWidth,
         Font baseFont,
-        TextAlignment alignment) {
+        TextAlignment alignment
+    ) {
       this.text = text;
       int available = text.length() * cellWidth;
       Font fitted = baseFont;
@@ -119,15 +124,11 @@ final class Drawing {
       this.textBounds = bounds;
       double actualWidth = bounds.getWidth();
       double padding = available - actualWidth;
-      this.x =
-          x
-              + (alignment == TextAlignment.LEFT
-                  ? 0
-                  : alignment == TextAlignment.RIGHT
-                      ? padding
-                      : available / 2 - (int) actualWidth / 2);
-      int capHeight =
-          font.createGlyphVector(FONT_CONTEXT, "Z").getVisualBounds().getBounds().height;
+      this.x = x
+          + (alignment == TextAlignment.LEFT
+          ? 0
+          : alignment == TextAlignment.RIGHT ? padding : available / 2 - (int) actualWidth / 2);
+      int capHeight = font.createGlyphVector(FONT_CONTEXT, "Z").getVisualBounds().getBounds().height;
       this.y = Math.round(centreY + capHeight / 2);
       this.colour = colour;
     }
@@ -153,7 +154,11 @@ final class Drawing {
 
     Rectangle2D bounds() {
       return new Rectangle2D.Double(
-          x + textBounds.getX(), y + textBounds.getY(), textBounds.getWidth(), textBounds.getHeight());
+          x + textBounds.getX(),
+          y + textBounds.getY(),
+          textBounds.getWidth(),
+          textBounds.getHeight()
+      );
     }
   }
 }

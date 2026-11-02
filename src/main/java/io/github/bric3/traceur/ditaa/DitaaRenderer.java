@@ -10,8 +10,11 @@ import java.util.Objects;
  * Instances are stateless and thread-safe. The caller owns the output stream.
  */
 public final class DitaaRenderer {
-  /** Creates a stateless renderer. */
-  public DitaaRenderer() {}
+  /**
+   * Creates a stateless renderer.
+   */
+  public DitaaRenderer() {
+  }
 
   /**
    * Renders one diagram. The caller retains ownership of the supplied stream.
@@ -25,8 +28,11 @@ public final class DitaaRenderer {
    * @throws IllegalArgumentException when input or output dimensions exceed rendering limits
    */
   public ImageSize render(
-      String text, RenderOptions options, OutputFormat format, OutputStream output)
-      throws IOException {
+      String text,
+      RenderOptions options,
+      OutputFormat format,
+      OutputStream output
+  ) throws IOException {
     Objects.requireNonNull(text, "text");
     Objects.requireNonNull(options, "options");
     Objects.requireNonNull(format, "format");

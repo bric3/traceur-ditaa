@@ -1,11 +1,14 @@
 /* SPDX-License-Identifier: MPL-2.0 */
 package io.github.bric3.traceur.ditaa;
 
-/** Immutable rendering options. Instances can be shared between threads. */
+/**
+ * Immutable rendering options. Instances can be shared between threads.
+ */
 public final class RenderOptions {
-  /** Unit scale with shadows and shared-edge separation enabled. */
+  /**
+   * Unit scale with shadows and shared-edge separation enabled.
+   */
   public static final RenderOptions DEFAULT = new RenderOptions(1, true, true);
-
   private final double scale;
   private final boolean shadows;
   private final boolean separation;

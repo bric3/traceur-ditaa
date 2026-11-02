@@ -1,14 +1,14 @@
 /* SPDX-License-Identifier: MPL-2.0 */
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import java.awt.image.BufferedImage;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class CorpusComparisonTest {
-  @TempDir Path directory;
+  @TempDir
+  Path directory;
 
   @Test
   void oracleAdapterRejectsMissingArgumentsBeforeLoadingTheReference() {
