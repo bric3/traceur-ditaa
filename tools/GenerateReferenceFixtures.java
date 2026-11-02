@@ -2,6 +2,7 @@
 // JAVA 25
 // SPDX-License-Identifier: MPL-2.0
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
+import javax.tools.ToolProvider;
 
 /** Generates golden images from project-authored inputs using the isolated reference binary. */
 class GenerateReferenceFixtures {
@@ -54,7 +56,7 @@ class GenerateReferenceFixtures {
         "# Project-authored inputs and reference renders use MPL-2.0.\n"
             + "oracle.version=PlantUML 1.2026.8\noracle.sha256="
             + hash
-            + "\n"
+            + "\npng.api=raw-text\n"
             + "svg.version=ditaa 0.11.0\nsvg.sha256="
             + svgHash
             + "\n"
@@ -79,7 +81,7 @@ class GenerateReferenceFixtures {
               + actualVersion.lines().findFirst().orElseThrow()
               + "\nplantuml.sha256="
               + hash
-              + "\n";
+              + "\npng.api=raw-text\n";
     }
     List<Path> inputs;
     try (var files = Files.list(inputsDirectory)) {
@@ -95,6 +97,23 @@ class GenerateReferenceFixtures {
         throw new IllegalArgumentException(
             "Regenerate all fixtures when the reference environment changes");
     }
+    Path helperClasses = Files.createDirectories(work.resolve("helpers")).toAbsolutePath();
+    int compilation =
+        ToolProvider.getSystemJavaCompiler()
+            .run(
+                null,
+                null,
+                null,
+                "--release",
+                "11",
+                "-encoding",
+                "UTF-8",
+                "-d",
+                helperClasses.toString(),
+                "src/tools/java/OraclePngProcess.java");
+    if (compilation != 0)
+      throw new IllegalStateException("Cannot compile the raw-text PNG entry point");
+    String oracleClasspath = oracle + File.pathSeparator + helperClasses;
     List<Options> options = new ArrayList<>();
     for (double scale : new double[] {1, .7, 2}) {
       for (boolean shadows : new boolean[] {true, false}) {
@@ -129,27 +148,21 @@ class GenerateReferenceFixtures {
                   () -> {
                     try {
                       String id = name + "-" + option;
-                      Path wrapped = work.resolve(id + ".puml");
-                      String flags =
-                          (settings.shadows ? "" : " -S")
-                              + (settings.separation ? "" : " -E")
-                              + " scale="
-                              + settings.scale;
-                      Files.writeString(
-                          wrapped,
-                          "@startditaa" + flags + "\n" + Files.readString(input) + "\n@endditaa\n");
                       Path output = outputs.resolve(id + ".png");
                       Process process =
                           new ProcessBuilder(
                                   javaCommand,
                                   "-Djava.awt.headless=true",
-                                  "-jar",
-                                  oracle.toString(),
-                                  "-nometadata",
-                                  "-pipe")
-                              .redirectInput(wrapped.toFile())
-                              .redirectOutput(output.toFile())
-                              .redirectError(work.resolve(id + ".log").toFile())
+                                  "-cp",
+                                  oracleClasspath,
+                                  "OraclePngProcess",
+                                  input.toAbsolutePath().toString(),
+                                  output.toAbsolutePath().toString(),
+                                  Double.toString(settings.scale),
+                                  Boolean.toString(settings.shadows),
+                                  Boolean.toString(settings.separation))
+                              .redirectErrorStream(true)
+                              .redirectOutput(work.resolve(id + ".log").toFile())
                               .start();
                       try {
                         if (!process.waitFor(20, TimeUnit.SECONDS)

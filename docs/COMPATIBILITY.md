@@ -38,6 +38,8 @@ Run both commands on macOS and Linux to regenerate the full fixture set.
 Linux references are stored in the linux subdirectory of compatibility fixtures.
 Each platform uses PNGs generated on the tested JDK and SVGs generated on Java 25.
 The generator checks both reference binary checksums before writing fixtures.
+PNG fixtures use the same raw-text entry point as the corpus comparison, preserving
+leading blank rows and source whitespace.
 To regenerate one fixture, append its name after `current` or the Java 11
 executable. The recorded environment must match; otherwise regenerate the full
 matrix first.
