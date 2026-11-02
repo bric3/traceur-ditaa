@@ -74,9 +74,9 @@ final class SvgWriter {
         .append(path)
         .append("\" fill=\"")
         .append(
-            figure.fill == null
-                ? (figure.dashed ? "white" : "none")
-                : separateFill ? "none" : colour(figure.fill))
+            separateFill
+                ? "none"
+                : figure.dashed ? "white" : figure.fill == null ? "none" : colour(figure.fill))
         .append('"');
     if (figure.dashed) dashes(svg, scale);
     if (figure.kind == Drawing.Figure.Kind.ARROW) svg.append(" stroke=\"none\"");
