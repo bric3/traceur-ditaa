@@ -1,137 +1,123 @@
 # Validation snapshot
 
 Compatibility, coverage, allocation and cold start measured on 2026-11-02.
-Every pinned corpus comparison passes.
 
 ## Build
 
-All 4,126 renderer tests pass across Java 11 and Java 25 on macOS, along with
-20 build-logic checks. The same 2,063 renderer tests pass on each JDK in isolated
-Linux containers. The suite includes 1,800 exact PNG/SVG comparisons of 75
-project-authored and blog fixtures. It covers encoding, shapes, connectors,
-options, text, allocation limits, unavailable PNG encoders, write failures and
-concurrent rendering. Stream API checks cover reader limits, UTF-8 and caller-selected
-encoding, resource ownership, caller-controlled buffering, and read/write failures.
-Renderer coverage is 99.3% of lines and 97.8% of branches,
-with no exclusions. `check` requires at least 99% line and 97% branch coverage.
-Library classes target bytecode version 55 and depend only on
-`java.base` and `java.desktop`. Release JARs include the MPL-2.0 licence.
+`build` passes 5,060 tests across Java 11 and Java 25 on macOS, plus 20
+build-logic checks. Linux passes the same 2,530 tests on each JDK. Each JDK runs
+2,208 exact PNG/SVG comparisons of 85 project-authored and seven blog diagrams.
+The remaining checks cover geometry, text, encoding, limits, concurrency, stream
+ownership and I/O failures.
 
-SVG fixture comparisons use JSVG 2.2.0 in memory. TableTest 1.2.2 runs tabular
-cases on both supported JDKs. Spotless runs Prince of Space 2.3.0 and TableTest
-Formatter 1.1.2; Yumi Licenser 4.0.0 checks the source headers. Formatting was
-audited across 32 Java files for structure, literal values and TableTest cells,
-and 120 comments for content and order. A forced second pass was unchanged.
-Configuration-cache reuse and licence repair are covered by Gradle TestKit.
+Whole-renderer coverage is 99.37% of lines and 97.03% of branches on both
+platforms, without exclusions. `check` requires 99% line and 97% branch coverage.
+Linux coverage was also measured directly with JaCoCo 0.8.14 on both JDKs.
+
+SVG fixture comparisons use JSVG 2.2.0. TableTest 1.2.2 expresses tabular cases;
+JUnit method sources retain long diagrams whose rows the formatter cannot preserve.
+Spotless uses Prince of Space 2.3.0 and TableTest Formatter 1.1.2; Yumi Licenser
+4.0.0 checks source headers. Formatting preserved the parsed structure and literal
+values of 41 Java files, including TableTest cells, and the content and order of
+152 comments. A forced second pass was unchanged.
+
+The library targets Java 11 bytecode and depends only on `java.base` and
+`java.desktop`. Its snapshot JAR is approximately 62 KiB. Reference helpers and
+third-party test libraries are absent from the runtime artifact.
 
 ## Publishing
 
-`nmcpZipAggregation -Psnapshot=true` stages the `0.0.2-SNAPSHOT` publication
-locally. The bundle contains the library, source and Javadoc JARs, POM, Gradle
-module metadata and checksums. All four required GitHub secret names are configured.
-The [2026-11-01 CI run](https://github.com/bric3/traceur-ditaa/actions/runs/41353301871)
-completed Central snapshot publication. No release upload was attempted during
-this validation.
+`nmcpZipAggregation -Psnapshot=true` stages the `0.1.1-SNAPSHOT` publication
+locally, including library, source and Javadoc JARs, POM, Gradle metadata and
+checksums. CI publishes the tested JARs after the build and all four corpus
+shards pass. Release publication uses the same compatibility gate.
 
 ## Rendering
 
-The pinned corpus contains 240 unique inputs from 846 source entries. Its largest
-collection is `linux-kernel-labs/linux-kernel-labs.github.io`, with 75 unique inputs.
-All 1,920 cases completed across both formats and four option variants:
+The manifest retains the previous 240 unique inputs and adds 500 selected from
+GitHub searches. Its 1,346 provenance entries cover 522 repositories. External
+source documents and diagrams remain outside the repository; the manifest pins
+revisions, extraction locations and SHA-256 values.
 
-| Format | Exact matches | Differences |
-| ------ | ------------- | ----------- |
-| PNG    | 960           | 0           |
-| SVG    | 960           | 0           |
-| Total  | 1,920         | 0           |
+All 5,920 comparisons pass on Linux: 740 inputs, two formats and four option
+variants. Every decoded PNG pixel matches. SVGs are rasterised by the same
+renderer and compared pixel by pixel. CI partitions the inputs into four
+SHA-256 shards containing 188, 175, 176 and 201 diagrams.
 
-All pinned comparisons now match, improving the initial 76 exact matches.
-The authored fixtures also verify mixed boundaries, independent markers and
-arrowheads, contour traversal, dense notches, and dashed special shapes.
-New authored fixtures cover long interior and exterior stubs, duplicate routes
-between shared junctions, and one-cell-high compartments. They caught and verify
-fixes for an extra contour stroke and an invalid enclosing fill.
-Seven blog diagrams and two focused fixtures extend the normal matrix to tiny
-columns of compartments, marker-adjacent arrow shafts and larger nested ellipses.
-They verify enclosing-fill selection, shaft endpoints and float control-point rounding.
-The PNG oracle invokes the public raw-text API in an isolated JVM. This removes
-PlantUML preprocessing from the comparison and eliminates all 40 dimension
-mismatches. Both renderers receive identical input whitespace.
+The full corpus ran with Temurin 25.0.5+8-LTS and `rsvg-convert` 2.58.0 in the
+Linux test container. Its report is generated under `build/linux-extended-comparison/`.
 
-All 1,920 comparisons also pass in an aarch64 Linux container with Temurin
-25.0.5+8-LTS and `rsvg-convert` 2.58.0. The macOS comparison uses macOS 26.7.2,
-aarch64, Temurin 25.0.5+8-LTS and `rsvg-convert` 2.63.4.
-The local [comparison report](../build/comparison/index.html) contains reference
-images, actual images, overlays, and differences. It is generated by the
-[comparison workflow](COMPATIBILITY.md).
-
-## Allocation
-
-Java 25 thread-allocation measurements use 30 warm-up renders and 50 measured SVG
-renders per workload. Each render writes to a null output stream. The dense blank
-grid contains 200,000 cells at scale 0.2. These values measure allocated bytes;
-fresh-process latency and peak RSS are measured separately below.
-
-| SVG workload     | Before, bytes/render | After, bytes/render |
-| ---------------- | -------------------- | ------------------- |
-| Empty            | 7,088                | 6,680               |
-| 50 text rows     | 186,834              | 166,507             |
-| 1 box            | 44,918               | 43,487              |
-| 10 boxes         | 540,172              | 520,135             |
-| 50 boxes         | 2,738,799            | 2,633,034           |
-| Dense blank grid | 11,107,814           | 5,709,198           |
-
-Visited directions use one byte per cell. PNG strokes and SVG working buffers are
-reused within each render. Text bounds are computed once per label, and diagrams
-without labels defer font selection. Graph collections whose iteration order
-affects rendering retain that order.
-
-## Cold start
-
-Environment: macOS 26.7.2, aarch64, 16 processors, Temurin 25.0.5+8-LTS.
-Each scenario used 30 interleaved fresh JVMs per implementation. Timing includes
-encoding; memory uses `/usr/bin/time -l`. Cells show traceur-ditaa / reference;
-RSS is the median of per-process peaks.
-
-| Boxes | Format | Median ms       | p95 ms          | RSS MiB       |
-| ----- | ------ | --------------- | --------------- | ------------- |
-| 1     | PNG    | 1212.3 / 1234.4 | 1326.4 / 1276.5 | 217.5 / 222.6 |
-| 1     | SVG    | 1175.9 / 1205.2 | 1571.3 / 1302.7 | 211.6 / 218.9 |
-| 10    | PNG    | 1237.5 / 1345.1 | 1347.4 / 1406.5 | 220.1 / 309.9 |
-| 10    | SVG    | 1166.8 / 1280.7 | 1258.7 / 1328.9 | 212.2 / 307.9 |
-| 50    | PNG    | 1288.8 / 1999.2 | 1382.7 / 2669.5 | 231.6 / 836.1 |
-| 50    | SVG    | 1209.4 / 1956.4 | 1354.8 / 2874.4 | 218.6 / 832.9 |
-
-Median latency and peak memory are lower than the reference in all scenarios.
-The strict gate fails for one-box p95: PNG is 49.9 ms higher and SVG is 268.6 ms
-higher. Reference medians increased by 28-35% between the baseline and final runs,
-so absolute timings from those separate runs do not isolate the code changes.
-The direct revision comparison below interleaves the frozen before/after classes.
-
-The direct comparison uses the same `RenderProcess` entry point, Java 25 and
-headless mode for both revisions: `4cf7653` before the optimisation and `6cc42d8`
-after the compatibility fixes. Each SVG workload uses 30 fresh JVMs per revision.
-Cells show before / after. The text-only case contains 50 rows.
-
-| SVG workload | Median ms     | p95 ms          | Peak RSS MiB  |
-| ------------ | ------------- | --------------- | ------------- |
-| Empty        | 895.0 / 75.5  | 939.3 / 110.9   | 210.1 / 55.9  |
-| 50 text rows | 962.2 / 949.5 | 1033.3 / 1066.9 | 211.6 / 211.5 |
-| 1 box        | 991.7 / 968.6 | 1048.4 / 1049.6 | 211.8 / 211.8 |
-| 50 boxes     | 955.4 / 954.3 | 1042.7 / 970.0  | 220.5 / 217.9 |
-
-Deferring font selection substantially improves the empty SVG case. Labelled
-workloads have similar medians and mixed p95 results: text-only p95 increases by
-33.6 ms, while fifty-box p95 decreases by 72.7 ms. These results do not establish
-a general startup improvement for labelled diagrams.
+The authored regressions cover branched and split contours, shared open
+compartments, adjacent junctions, short shafts, independent markers, diagonal
+endpoints, concave documents, text columns, shadow rounding and wide grids.
+macOS Java 11 fixture tests prime the Java2D glyph cache consistently with their
+reference generator. Corpus comparisons and cold-start measurements use fresh,
+unprimed processes.
 
 Reference JAR SHA-256 values:
 
 - PlantUML 1.2026.8: `0f77e5f769836b3dee340e207fe497c3e4c43e973d559e3c306915da9c32e34c`.
 - ditaa 0.11.0: `9418aa63ff6d89c5d2318396f59836e120e75bea7a5930c4d34aa10fe7a196a9`.
 
-Raw benchmark samples and environment details are generated under
-`build/cold-start/`, with the pre-change samples in its `baseline` subdirectory.
-Direct revision samples and their runner are in `build/cold-start/revisions/`;
-allocation samples and their runner are in `build/cold-start/allocation/`.
-Warm throughput was not measured.
+## Allocation
+
+Java 25 thread-allocation measurements use 30 warm-up renders and 50 measured SVG
+renders, writing to a null output stream. The dense blank grid contains 200,000
+source cells at scale 0.2. Both revisions use the same runtime and harness;
+the baseline contains the production code from `98b4c8b`. Candidate measurements use
+`19bf16c`, before the final correction for disjoint branched frames. That
+correction does not change the measured diagrams' rendering paths.
+
+| SVG workload     | Before, bytes/render | After, bytes/render |
+| ---------------- | -------------------- | ------------------- |
+| Empty            | 6,696                | 8,208               |
+| 50 text rows     | 166,618              | 168,299             |
+| 1 box            | 43,475               | 45,689              |
+| 10 boxes         | 519,549              | 602,276             |
+| 50 boxes         | 2,637,186            | 3,115,405           |
+| Dense blank grid | 5,709,210            | 966,355             |
+
+Trimming trailing blank rows reduces dense blank-grid allocation by 83%.
+Exact contour ordering and the additional boundary classification increase
+allocation for ten and fifty boxes by 16% and 18%. Region bounds are cached once
+per region; collections whose iteration affects painting retain their order.
+These measurements describe allocation, not warm throughput or retained heap.
+
+## Cold start
+
+Environment: macOS 26.7.2, aarch64, Temurin 25.0.5+8-LTS. Each workload uses
+30 interleaved fresh JVMs per revision. Timing includes encoding; peak RSS comes
+from `/usr/bin/time -l`. Cells show before / after, with the same baseline as
+the allocation measurements.
+
+| Workload     | Format | Median ms     | p95 ms          | Peak RSS MiB  |
+| ------------ | ------ | ------------- | --------------- | ------------- |
+| Empty        | SVG    | 60.1 / 63.7   | 84.0 / 72.3     | 56.2 / 57.7   |
+| 50 text rows | SVG    | 943.1 / 934.8 | 1833.4 / 1680.4 | 211.8 / 212.0 |
+| 1 box        | SVG    | 929.8 / 933.8 | 1065.8 / 1113.3 | 211.5 / 212.4 |
+| 50 boxes     | SVG    | 971.9 / 980.9 | 1069.4 / 1070.7 | 217.8 / 221.1 |
+| 1 box        | PNG    | 979.7 / 977.6 | 1012.1 / 1022.5 | 217.3 / 218.3 |
+
+Startup medians stay within 9.1 ms of the baseline. One-box SVG p95 increases
+by 47.4 ms, while text-only p95 decreases by 153.1 ms. Fifty-box peak RSS
+increases by 3.3 MiB. The p95 changes vary by workload.
+
+Measurements, raw samples and the direct revision harness are stored under
+`build/cold-start/extended/`. Warm throughput and retained heap were not measured.
+
+The reference benchmark uses the same runtime and 30 interleaved fresh JVMs per
+implementation. Cells show traceur-ditaa / reference.
+
+| Boxes | Format | Median ms       | p95 ms          | Peak RSS MiB  |
+| ----- | ------ | --------------- | --------------- | ------------- |
+| 1     | PNG    | 963.3 / 972.1   | 1079.0 / 1077.8 | 218.4 / 222.6 |
+| 1     | SVG    | 939.0 / 961.8   | 1013.6 / 1067.3 | 212.4 / 218.7 |
+| 10    | PNG    | 989.1 / 1065.7  | 1071.9 / 1145.2 | 221.1 / 310.1 |
+| 10    | SVG    | 1007.4 / 1052.5 | 1125.2 / 1322.5 | 214.1 / 308.6 |
+| 50    | PNG    | 1026.1 / 1515.0 | 1067.8 / 1590.3 | 233.0 / 836.1 |
+| 50    | SVG    | 975.0 / 1494.7  | 1051.4 / 1559.6 | 220.9 / 833.4 |
+
+Median latency and peak RSS are lower in all six scenarios. The strict gate
+fails for one-box PNG p95: 1078.96 ms versus 1077.79 ms, a 1.16 ms increase.
+All other median and p95 comparisons pass. Raw reference samples and environment
+details are in `build/cold-start/extended-reference/`.

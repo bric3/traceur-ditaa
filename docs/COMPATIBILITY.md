@@ -24,8 +24,8 @@ caller. Rendering never closes or flushes caller resources. The original
 
 ## Corpus comparison
 
-The normal build runs 2,071 tests on each JDK, including 1,800 exact image comparisons
-from 68 project-authored diagrams and seven blog diagrams, three scales and all
+The normal build runs 2,530 tests on each JDK, including 2,208 exact image comparisons
+from 85 project-authored diagrams and seven blog diagrams, three scales and all
 shadow/separation settings. Blog sources and licensing are recorded in
 [BLOG-SOURCES.md](../src/test/resources/compatibility/BLOG-SOURCES.md).
 PNG assertions compare every decoded pixel. SVG assertions rasterise both vectors
@@ -55,6 +55,9 @@ Each platform uses PNGs generated on the tested JDK and SVGs generated on Java 2
 The generator checks both reference binary checksums before writing fixtures.
 PNG fixtures use the same raw-text entry point as the corpus comparison, preserving
 leading blank rows and source whitespace.
+On macOS Java 11, fixture generation and tests initialise the font cache with the
+same ASCII text at each scale. This avoids history-dependent missing glyphs in
+Java2D. Corpus comparisons and cold-start benchmarks remain unprimed.
 To regenerate selected fixtures, append their comma-separated names after `current` or the Java 11
 executable. The recorded environment must match; otherwise regenerate the full
 matrix first.
@@ -63,7 +66,7 @@ matrix first.
 jbang tools/GenerateReferenceFixtures.java /path/to/plantuml-1.2026.8.jar /path/to/ditaa-0.11.0.jar current box
 ```
 
-The [manifest](../corpus/manifest.tsv) pins 240 unique inputs with repository,
+The [manifest](../corpus/manifest.tsv) pins 740 unique inputs with repository,
 revision, extraction location, SHA-256, and unresolved licence markers. Recreate
 the external cache with Java 25 and JBang:
 
@@ -90,9 +93,37 @@ and difference images appear in `build/comparison/index.html`.
 
 Successful references are cached by input, options, format, oracle hashes, JDK,
 and rasterizer. Delete `build/comparison` to refresh them after changing fonts.
-`FetchCorpus.java` and `ImportSearchCorpus.java` discover additional documentation
-blocks and GitHub `.ditaa` files. GitHub search caps results at 1,000; the recorded
-corpus describes the searched collections.
+CI and releases require all 5,920 comparisons, partitioned into four deterministic
+SHA-256 shards. To run one shard locally, add `-PcorpusShard=0/4` to `compareCorpus`.
+The fetcher can also download one shard:
+
+```sh
+jbang tools/FetchPinnedCorpus.java corpus/manifest.tsv /tmp/traceur-ditaa-corpus --shard 0/4
+```
+
+## Extending the corpus
+
+The [search inventory](../corpus/search-2026-11-02.tsv) records six GitHub code
+queries for `.ditaa`, AsciiDoc, Markdown, PlantUML and Org files. Three queries
+reached GitHub's 1,000-result cap. The importer found 1,474 new unique candidates
+across 488 repositories. Selection retained the previous 240 inputs and added
+500, taking one candidate per repository each round in repository-name order.
+This is a bounded sample of the recorded searches.
+
+```sh
+jbang tools/SearchCorpus.java /tmp/traceur-discovery
+jbang tools/ImportSearchCorpus.java /tmp/traceur-discovery/search.tsv /tmp/traceur-discovery
+jbang tools/SelectCorpus.java /path/to/base-manifest.tsv /tmp/traceur-discovery corpus/rejected.tsv
+```
+
+The selection tool writes `selected/manifest.tsv` and `selected/inputs/` in the
+external cache. Review their provenance, compare all selected inputs, then append
+their metadata to the manifest. External source documents and extracted diagrams
+stay outside the repository.
+
+The [rejection list](../corpus/rejected.tsv) records one empty diagram rejected
+by both references; the next candidate filled its place. Rendering mismatches
+remain required cases and fail the comparison.
 
 ## Cold start
 
