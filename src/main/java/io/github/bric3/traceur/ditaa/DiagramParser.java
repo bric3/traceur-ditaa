@@ -857,7 +857,7 @@ final class DiagramParser {
             else if (cornerBridge(ox, oy, nx, ny, boundary)) continue;
             connections++;
           }
-        anchored = closedEdges == 2 && connections == 3;
+        anchored = closedEdges >= 2 && connections == closedEdges + 1;
       }
       if (anchored) {
         if (c == '-') x = (point.x + 2) * cellWidth + (point.x > other.x ? cellWidth - 1 : 0);

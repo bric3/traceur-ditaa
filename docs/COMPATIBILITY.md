@@ -17,8 +17,8 @@ input, grids above 250,000 cells, dimensions above 32,768 pixels, and images abo
 
 ## Corpus comparison
 
-The normal build runs 1,488 tests on each JDK, including 1,248 exact image comparisons
-from 52 project-authored diagrams, three scales and all shadow/separation settings.
+The normal build runs 1,512 tests on each JDK, including 1,272 exact image comparisons
+from 53 project-authored diagrams, three scales and all shadow/separation settings.
 PNG assertions compare every decoded pixel. SVG assertions rasterise both vectors
 with `rsvg-convert` before comparing every pixel. These focused fixtures cover
 individual features; the external corpus below checks their combinations.
