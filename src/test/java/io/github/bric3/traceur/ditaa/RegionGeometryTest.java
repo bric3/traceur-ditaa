@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.awt.Color;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import static io.github.bric3.traceur.ditaa.DiagramFixtures.layout;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -14,12 +14,16 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.tabletest.junit.TableTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class RegionGeometryTest {
-  @ParameterizedTest
-  @CsvSource({"0, 2", "1, 1", "2, 1"})
+  @TableTest({
+    "layout | arrows",
+    "0 | 2",
+    "1 | 1",
+    "2 | 1"
+  })
   void arrowheadsCannotCloseARegion(int layout, int arrows) throws IOException {
     var drawing = DiagramParser.parse(layout("arrow-regions", 5, layout), RenderOptions.DEFAULT);
     assertEquals(
@@ -57,8 +61,13 @@ class RegionGeometryTest {
     assertTrue(drawing.labels.isEmpty());
   }
 
-  @ParameterizedTest
-  @CsvSource({"0, 2", "1, 2", "3, 3", "5, 5"})
+  @TableTest({
+    "layout | expected",
+    "0 | 2",
+    "1 | 2",
+    "3 | 3",
+    "5 | 5"
+  })
   void adjacentClosedCornersRetainTheirRegions(int layout, int expected) throws IOException {
     var drawing =
         DiagramParser.parse(layout("corner-connections", 6, layout), RenderOptions.DEFAULT);
@@ -178,17 +187,6 @@ class RegionGeometryTest {
 
   private static String nestedLayout(int index) throws IOException {
     return layout("nested-subdivisions", 4, index);
-  }
-
-  private static String layout(String name, int expected, int index) throws IOException {
-    try (var input =
-        RegionGeometryTest.class.getResourceAsStream("/compatibility/" + name + ".ditaa")) {
-      assertNotNull(input);
-      String[] layouts =
-          new String(input.readAllBytes(), StandardCharsets.UTF_8).stripTrailing().split("\n\n");
-      assertEquals(expected, layouts.length);
-      return layouts[index];
-    }
   }
 
   static Stream<Arguments> inwardStubs() {

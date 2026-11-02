@@ -4,143 +4,91 @@ package io.github.bric3.traceur.ditaa;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import com.github.weisj.jsvg.parser.LoaderContext;
+import com.github.weisj.jsvg.parser.SVGLoader;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.stream.Stream;
 import javax.imageio.ImageIO;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class ReferenceRenderingTest {
   private static final String REFERENCE_DIRECTORY =
-      "/compatibility/" + (System.getProperty("os.name").equals("Linux") ? "linux/" : "");
-
-  @TempDir Path directory;
+      System.getProperty("os.name").equals("Linux") ? "linux/" : "";
 
   static Stream<Arguments> diagrams() throws Exception {
-    String index;
-    try (var input = ReferenceRenderingTest.class.getResourceAsStream("/compatibility/cases.tsv")) {
-      assertNotNull(input, "Missing reference fixture index");
-      index = new String(input.readAllBytes(), StandardCharsets.UTF_8);
-    }
-    return index
+    return new String(DiagramFixtures.read("cases.tsv"), StandardCharsets.UTF_8)
         .lines()
         .skip(1)
-        .map(
-            row -> {
-              String[] fields = row.split("\t");
-              return Arguments.of(
-                  fields[0],
-                  Integer.parseInt(fields[1]),
-                  Double.parseDouble(fields[2]),
-                  Boolean.parseBoolean(fields[3]),
-                  Boolean.parseBoolean(fields[4]));
-            });
+        .map(row -> {
+          String[] fields = row.split("\t");
+          return Arguments.of(fields[0], Integer.parseInt(fields[1]), Double.parseDouble(fields[2]),
+              Boolean.parseBoolean(fields[3]), Boolean.parseBoolean(fields[4]));
+        });
   }
 
   @ParameterizedTest(name = "{0}, scale {2}, shadows {3}, separation {4}")
   @MethodSource("diagrams")
   void pngMatchesTheReferencePixels(
-      String name, int variant, double scale, boolean shadows, boolean separation)
-      throws Exception {
-    String text;
-    try (var input = getClass().getResourceAsStream("/compatibility/" + name + ".ditaa")) {
-      assertNotNull(input);
-      text = new String(input.readAllBytes(), StandardCharsets.UTF_8);
-    }
-    var options = new RenderOptions(scale, shadows, separation);
+      String name, int variant, double scale, boolean shadows, boolean separation) throws Exception {
     var output = new ByteArrayOutputStream();
-    ImageSize size = new DitaaRenderer().render(text, options, OutputFormat.PNG, output);
+    ImageSize size = new DitaaRenderer().render(DiagramFixtures.text(name),
+        new RenderOptions(scale, shadows, separation), OutputFormat.PNG, output);
     var actual = ImageIO.read(new ByteArrayInputStream(output.toByteArray()));
     String runtime = Runtime.version().feature() == 11 ? "java11/" : "";
-    try (var input =
-        getClass()
-            .getResourceAsStream(REFERENCE_DIRECTORY + runtime + name + "-" + variant + ".png")) {
-      assertNotNull(input);
-      var expected = ImageIO.read(input);
-      assertEquals(expected.getWidth(), size.width(), "Width");
-      assertEquals(expected.getHeight(), size.height(), "Height");
-      long differences = 0;
-      for (int y = 0; y < size.height(); y++) {
-        int[] expectedRow = expected.getRGB(0, y, size.width(), 1, null, 0, size.width());
-        int[] actualRow = actual.getRGB(0, y, size.width(), 1, null, 0, size.width());
-        if (!Arrays.equals(expectedRow, actualRow)) {
-          for (int x = 0; x < size.width(); x++) if (expectedRow[x] != actualRow[x]) differences++;
-        }
-      }
-      assertEquals(0, differences, "Different decoded RGBA pixels");
-    }
+    var expected = ImageIO.read(new ByteArrayInputStream(
+        DiagramFixtures.read(REFERENCE_DIRECTORY + runtime + name + "-" + variant + ".png")));
+    assertNotNull(expected);
+    assertEquals(expected.getWidth(), size.width(), "Width");
+    assertEquals(expected.getHeight(), size.height(), "Height");
+    assertPixels(expected, actual);
   }
 
   @ParameterizedTest(name = "{0}, scale {2}, shadows {3}, separation {4}")
   @MethodSource("diagrams")
   void svgMatchesTheReferencePixels(
-      String name, int variant, double scale, boolean shadows, boolean separation)
-      throws Exception {
-    String text;
-    try (var input = getClass().getResourceAsStream("/compatibility/" + name + ".ditaa")) {
-      assertNotNull(input);
-      text = new String(input.readAllBytes(), StandardCharsets.UTF_8);
-    }
+      String name, int variant, double scale, boolean shadows, boolean separation) throws Exception {
     var output = new ByteArrayOutputStream();
-    new DitaaRenderer()
-        .render(text, new RenderOptions(scale, shadows, separation), OutputFormat.SVG, output);
-    var document = SvgEncodingTest.parse(output.toByteArray());
+    new DitaaRenderer().render(DiagramFixtures.text(name), new RenderOptions(scale, shadows, separation),
+        OutputFormat.SVG, output);
+    byte[] svg = output.toByteArray();
+    var document = SvgEncodingTest.parse(svg);
     assertEquals(0, document.getElementsByTagNameNS("*", "image").getLength());
-    Path actualSvg = directory.resolve("actual.svg");
-    Files.write(actualSvg, output.toByteArray());
-    Path expectedSvg = directory.resolve("reference.svg");
-    try (var input =
-        getClass().getResourceAsStream(REFERENCE_DIRECTORY + name + "-" + variant + ".svg")) {
-      assertNotNull(input);
-      Files.copy(input, expectedSvg);
-    }
-    Path expectedPng = rasterise(expectedSvg, "expected.png");
-    Path actualPng = rasterise(actualSvg, "actual.png");
-    var expected = ImageIO.read(expectedPng.toFile());
-    var actual = ImageIO.read(actualPng.toFile());
-    assertEquals(expected.getWidth(), actual.getWidth());
-    assertEquals(expected.getHeight(), actual.getHeight());
-    long differences = 0;
-    for (int y = 0; y < expected.getHeight(); y++) {
-      for (int x = 0; x < expected.getWidth(); x++)
-        if (expected.getRGB(x, y) != actual.getRGB(x, y)) differences++;
-    }
-    assertEquals(
-        0,
-        differences,
-        "Different SVG pixels after rasterising both vectors with the same renderer");
+    assertPixels(rasterise(DiagramFixtures.read(REFERENCE_DIRECTORY + name + "-" + variant + ".svg")), rasterise(svg));
   }
 
-  private Path rasterise(Path svg, String name) throws Exception {
-    Path png = directory.resolve(name);
-    Process process =
-        new ProcessBuilder(
-                System.getProperty("rasterizer", "rsvg-convert"),
-                "--output",
-                png.toString(),
-                svg.toString())
-            .redirectErrorStream(true)
-            .redirectOutput(directory.resolve(name + ".log").toFile())
-            .start();
+  private static BufferedImage rasterise(byte[] svg) {
+    var document = new SVGLoader().load(new ByteArrayInputStream(svg), null, LoaderContext.createDefault());
+    assertNotNull(document, "Invalid SVG");
+    var image = new BufferedImage((int) Math.ceil(document.size().width),
+        (int) Math.ceil(document.size().height), BufferedImage.TYPE_INT_ARGB);
+    var graphics = image.createGraphics();
     try {
-      assertEquals(
-          true,
-          process.waitFor(15, java.util.concurrent.TimeUnit.SECONDS),
-          "SVG rasteriser timed out");
-      assertEquals(0, process.exitValue(), "SVG rasteriser failed");
+      graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+      document.render(null, graphics);
     } finally {
-      if (process.isAlive()) {
-        process.destroyForcibly();
-        process.waitFor();
-      }
+      graphics.dispose();
     }
-    return png;
+    return image;
+  }
+
+  private static void assertPixels(BufferedImage expected, BufferedImage actual) {
+    assertNotNull(actual, "Missing rendered image");
+    int width = expected.getWidth();
+    assertEquals(width, actual.getWidth(), "Width");
+    assertEquals(expected.getHeight(), actual.getHeight(), "Height");
+    int[] expectedRow = new int[width], actualRow = new int[width];
+    long differences = 0;
+    for (int y = 0; y < expected.getHeight(); y++) {
+      expected.getRGB(0, y, width, 1, expectedRow, 0, width);
+      actual.getRGB(0, y, width, 1, actualRow, 0, width);
+      for (int x = 0; x < width; x++) if (expectedRow[x] != actualRow[x]) differences++;
+    }
+    assertEquals(0, differences, "Different decoded RGBA pixels");
   }
 }

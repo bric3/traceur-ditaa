@@ -9,8 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.tabletest.junit.TableTest;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -92,8 +91,14 @@ class SvgEncodingTest {
         path.getAttribute("d"));
   }
 
-  @ParameterizedTest
-  @CsvSource({"0,0,30,35", "4,0,65,56", "0,3,55,84", "4,3,65,98", "19,0,215,56"})
+  @TableTest({
+    "column | row | x | y",
+    "0 | 0 | 30 | 35",
+    "4 | 0 | 65 | 56",
+    "0 | 3 | 55 | 84",
+    "4 | 3 | 65 | 98",
+    "19 | 0 | 215 | 56"
+  })
   void roundedContourStartsFollowPaddedBoundaryCells(int column, int row, int x, int y)
       throws Exception {
     String indent = " ".repeat(column);
@@ -156,16 +161,16 @@ class SvgEncodingTest {
     assertEquals("#000abc", rendered.getAttribute("fill"));
   }
 
-  @ParameterizedTest
-  @CsvSource({
-    "RED,ee3322",
-    "BLU,5555bb",
-    "GRE,99dd99",
-    "PNK,ffaaaa",
-    "BLK,000000",
-    "YEL,ffff33",
-    "0AF,00aaff",
-    "F0A,ff00aa"
+  @TableTest({
+    "code | expected",
+    "RED | ee3322",
+    "BLU | 5555bb",
+    "GRE | 99dd99",
+    "PNK | ffaaaa",
+    "BLK | 000000",
+    "YEL | ffff33",
+    "0AF | 00aaff",
+    "F0A | ff00aa"
   })
   void namedAndHexadecimalColoursReachTheEncodedShape(String code, String expected)
       throws Exception {
@@ -179,20 +184,20 @@ class SvgEncodingTest {
     assertEquals(0, document.getElementsByTagNameNS("*", "text").getLength());
   }
 
-  @ParameterizedTest
-  @CsvSource({
-    "000,ffffff",
-    "BBB,ffffff",
-    "CCC,000000",
-    "B00,ffffff",
-    "C00,000000",
-    "0B0,ffffff",
-    "0C0,000000",
-    "00B,ffffff",
-    "00C,000000",
-    "RED,000000",
-    "BLU,ffffff",
-    "FFF,000000"
+  @TableTest({
+    "background | foreground",
+    "000 | ffffff",
+    "BBB | ffffff",
+    "CCC | 000000",
+    "B00 | ffffff",
+    "C00 | 000000",
+    "0B0 | ffffff",
+    "0C0 | 000000",
+    "00B | ffffff",
+    "00C | 000000",
+    "RED | 000000",
+    "BLU | ffffff",
+    "FFF | 000000"
   })
   void textUsesTheReferenceForegroundForShapeColours(String background, String foreground)
       throws Exception {

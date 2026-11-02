@@ -5,12 +5,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.awt.Color;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.converter.ConvertWith;
+import org.tabletest.junit.TableTest;
 
 class InlineTextTest {
-  @ParameterizedTest
-  @ValueSource(strings = {"A", "9", "é", "漢", "v", "V"})
+  @TableTest({"Text", "{A, 9, é, 漢, v, V}"})
   void aLetterOrDigitWithinAHorizontalLineKeepsItsLabel(String text) {
     var drawing = DiagramParser.parse("---" + text + "---", RenderOptions.DEFAULT);
     assertEquals(1, drawing.figures.size());
@@ -22,8 +21,7 @@ class InlineTextTest {
     assertEquals(text, drawing.labels.get(0).text.stripTrailing());
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"A", "9", "é", "漢"})
+  @TableTest({"Text", "{A, 9, é, 漢}"})
   void aLetterOrDigitWithinAVerticalLineKeepsItsLabel(String text) {
     var drawing = DiagramParser.parse("|\n" + text + "\n|", RenderOptions.DEFAULT);
     assertEquals(1, drawing.figures.size());
@@ -35,8 +33,7 @@ class InlineTextTest {
     assertEquals(text, drawing.labels.get(0).text.stripTrailing());
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"v", "V"})
+  @TableTest({"Arrow", "{v, V}"})
   void aDownwardArrowBetweenVerticalShaftCellsBecomesPartOfTheLine(String arrow) {
     var drawing = DiagramParser.parse("|\n" + arrow + "\n|", RenderOptions.DEFAULT);
     assertEquals(1, drawing.figures.size());
@@ -45,8 +42,7 @@ class InlineTextTest {
     assertTrue(drawing.labels.isEmpty());
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"vv", "VV"})
+  @TableTest({"Arrows", "{vv, VV}"})
   void neighbouringDownwardArrowheadsKeepTheirOwnShafts(String arrows) {
     var drawing = DiagramParser.parse("||\n" + arrows, RenderOptions.DEFAULT);
     assertEquals(4, drawing.figures.size());
@@ -58,8 +54,7 @@ class InlineTextTest {
     assertTrue(drawing.labels.isEmpty());
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"_", "/", "!", " "})
+  @TableTest({"Text", "{_, /, !, ' '}"})
   void symbolsAndSpacesKeepTheGapBetweenHorizontalShafts(String text) {
     var drawing = DiagramParser.parse("--" + text + "--", RenderOptions.DEFAULT);
     assertEquals(2, drawing.figures.size());
@@ -106,9 +101,8 @@ class InlineTextTest {
     assertEquals("v", drawing.labels.get(0).text.stripTrailing());
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"^\nText", "|\nv\nText"})
-  void anArrowheadSelectsWhiteTextWhenItsShaftDoesNotIntersectTheText(String text) {
+  @TableTest({"Diagram", "'^\\nText'", "'|\\nv\\nText'"})
+  void anArrowheadSelectsWhiteTextWhenItsShaftDoesNotIntersectTheText(@ConvertWith(DiagramConverter.class) String text) {
     var drawing = DiagramParser.parse(text, RenderOptions.DEFAULT);
     assertEquals(1, drawing.labels.size());
     assertEquals(Color.WHITE, drawing.labels.get(0).colour);

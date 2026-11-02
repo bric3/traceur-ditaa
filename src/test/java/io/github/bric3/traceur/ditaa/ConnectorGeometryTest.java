@@ -4,30 +4,25 @@ package io.github.bric3.traceur.ditaa;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.tabletest.junit.TableTest;
+import org.junit.jupiter.params.converter.ConvertWith;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class ConnectorGeometryTest {
-  static Stream<Arguments> roundedJunctions() {
-    return Stream.of(
-        Arguments.of("/--\n+--\n|", false, 35, 63),
-        Arguments.of("|\n+--\n\\--", false, 35, 63),
-        Arguments.of("--\\\n--+\n  |", false, 35, 63),
-        Arguments.of("-+\\\n ||\n ||", true, 25, 45),
-        Arguments.of("/+-\n||\n||", true, 25, 45),
-        Arguments.of("/--\n|\n+--\n|", false, 63, 77),
-        Arguments.of("/-----\\\n+-----/\n|", false, 49, 69));
-  }
-
-  @ParameterizedTest
-  @MethodSource("roundedJunctions")
+  @TableTest({
+    "Diagram | Horizontal | Start | End",
+    "'/--\\n+--\\n|' | false | 35 | 63",
+    "'|\\n+--\\n\\--' | false | 35 | 63",
+    "'--\\\\n--+\\n  |' | false | 35 | 63",
+    "'-+\\\\n ||\\n ||' | true | 25 | 45",
+    "'/+-\\n||\\n||' | true | 25 | 45",
+    "'/--\\n|\\n+--\\n|' | false | 63 | 77",
+    "'/-----\\\\n+-----/\\n|' | false | 49 | 69"
+  })
   void aStraightArmExtendsThroughTheNeighbouringOpenCorner(
-      String text, boolean horizontal, double start, double end) {
+      @ConvertWith(DiagramConverter.class) String text, boolean horizontal, double start, double end) {
     var drawing = DiagramParser.parse(text, RenderOptions.DEFAULT);
     var bounds =
         drawing.figures.stream()
@@ -40,8 +35,15 @@ class ConnectorGeometryTest {
     assertEquals(end, horizontal ? bounds.getMaxX() : bounds.getMaxY());
   }
 
-  @ParameterizedTest
-  @CsvSource({"+-,30,39", "-+,20,29", "+-+,30,39", "++-,35,45", "-++,25,35", "+----,35,65"})
+  @TableTest({
+    "text | left | right",
+    "+- | 30 | 39",
+    "-+ | 20 | 29",
+    "+-+ | 30 | 39",
+    "++- | 35 | 45",
+    "-++ | 25 | 35",
+    "+---- | 35 | 65"
+  })
   void plusEndpointsLeaveTheReferenceLineExtent(String text, double left, double right) {
     var drawing = DiagramParser.parse(text, RenderOptions.DEFAULT);
     assertEquals(1, drawing.figures.size());
@@ -59,26 +61,23 @@ class ConnectorGeometryTest {
     assertTrue(drawing.labels.isEmpty());
   }
 
-  static Stream<Arguments> shortArrows() {
-    return Stream.of(
-        Arguments.of("->", 1, 20, 35, 35, 35),
-        Arguments.of("<-", 1, 25, 35, 39, 35),
-        Arguments.of("^\n|", 1, 25, 35, 25, 55),
-        Arguments.of("|\nv", 1, 25, 28, 25, 49),
-        Arguments.of("->", .7, 14, 22, 24, 22),
-        Arguments.of("<-", .7, 17, 22, 27, 22),
-        Arguments.of("^\n|", .7, 17, 22, 17, 35),
-        Arguments.of("|\nv", .7, 17, 18, 17, 31),
-        Arguments.of("->", 2, 40, 70, 70, 70),
-        Arguments.of("<-", 2, 50, 70, 79, 70),
-        Arguments.of("^\n|", 2, 50, 70, 50, 111),
-        Arguments.of("|\nv", 2, 50, 56, 50, 98));
-  }
-
-  @ParameterizedTest
-  @MethodSource("shortArrows")
+  @TableTest({
+    "Diagram | Scale | Left | Top | Right | Bottom",
+    "-> | 1 | 20 | 35 | 35 | 35",
+    "<- | 1 | 25 | 35 | 39 | 35",
+    "'^\\n|' | 1 | 25 | 35 | 25 | 55",
+    "'|\\nv' | 1 | 25 | 28 | 25 | 49",
+    "-> | .7 | 14 | 22 | 24 | 22",
+    "<- | .7 | 17 | 22 | 27 | 22",
+    "'^\\n|' | .7 | 17 | 22 | 17 | 35",
+    "'|\\nv' | .7 | 17 | 18 | 17 | 31",
+    "-> | 2 | 40 | 70 | 70 | 70",
+    "<- | 2 | 50 | 70 | 79 | 70",
+    "'^\\n|' | 2 | 50 | 70 | 50 | 111",
+    "'|\\nv' | 2 | 50 | 56 | 50 | 98"
+  })
   void aSingleShaftCellKeepsItsFreeCellEdge(
-      String text, double scale, double left, double top, double right, double bottom) {
+      @ConvertWith(DiagramConverter.class) String text, double scale, double left, double top, double right, double bottom) {
     var drawing = DiagramParser.parse(text, new RenderOptions(scale, false, true));
     var shaft =
         drawing.figures.stream()

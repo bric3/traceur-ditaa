@@ -7,25 +7,24 @@ import java.awt.Color;
 import java.awt.font.FontRenderContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.tabletest.junit.TableTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.w3c.dom.Element;
 
 class TextLayoutTest {
-  @ParameterizedTest
-  @CsvSource({
-    "2,1,1",
-    "4,3,3",
-    "7,6,6.5",
-    "9,8,8.5",
-    "12,12.5,12.5",
-    "13,13,14",
-    "14,14.5,15",
-    "28,29,30",
-    "42,43,45"
+  @TableTest({
+    "height | macSize | linuxSize",
+    "2 | 1 | 1",
+    "4 | 3 | 3",
+    "7 | 6 | 6.5",
+    "9 | 8 | 8.5",
+    "12 | 12.5 | 12.5",
+    "13 | 13 | 14",
+    "14 | 14.5 | 15",
+    "28 | 29 | 30",
+    "42 | 43 | 45"
   })
   void fontSizesMatchTheReferenceCellHeights(int height, float macSize, float linuxSize) {
     var drawing = new Drawing(100, 100, new RenderOptions((height + .25) / 14, false, true));
@@ -35,9 +34,18 @@ class TextLayoutTest {
         drawing.font().getSize2D());
   }
 
-  @ParameterizedTest
-  @CsvSource({
-    "8,38", "9,38", "10,39", "11,39", "12,39", "13,40", "14,40", "14.5,40", "15,40", "28.5,45"
+  @TableTest({
+    "fontSize | baseline",
+    "8 | 38",
+    "9 | 38",
+    "10 | 39",
+    "11 | 39",
+    "12 | 39",
+    "13 | 40",
+    "14 | 40",
+    "14.5 | 40",
+    "15 | 40",
+    "28.5 | 45"
   })
   void baselinesUseTheIntegerCapHeight(float fontSize, double baseline) {
     var label =
@@ -132,34 +140,28 @@ class TextLayoutTest {
     assertEquals(70, label.x + width(label) / 2, .5);
   }
 
-  @ParameterizedTest
-  @CsvSource({"0, true", "1, false", "2, true", "3, false"})
+  @TableTest({
+    "layout | white",
+    "0 | true",
+    "1 | false",
+    "2 | true",
+    "3 | false"
+  })
   void textContrastUsesLabelBoundsAgainstTheBoundaryPolygon(int layout, boolean white)
       throws IOException {
-    try (var input = getClass().getResourceAsStream("/compatibility/text-backgrounds.ditaa")) {
-      assertNotNull(input);
-      String[] layouts =
-          new String(input.readAllBytes(), StandardCharsets.UTF_8).stripTrailing().split("\n\n");
-      assertEquals(4, layouts.length);
-      var drawing = DiagramParser.parse(layouts[layout], RenderOptions.DEFAULT);
+      var drawing = DiagramParser.parse(DiagramFixtures.layout("text-backgrounds", 4, layout), RenderOptions.DEFAULT);
       assertEquals(1, drawing.labels.size());
       assertEquals("X", drawing.labels.get(0).text.stripTrailing());
       assertEquals(white ? Color.WHITE : Color.BLACK, drawing.labels.get(0).colour);
-    }
   }
 
   @Test
   void filledRegionsSetTextContrastAfterLargerOpenFrames() throws IOException {
-    try (var input = getClass().getResourceAsStream("/compatibility/foreground-order.ditaa")) {
-      assertNotNull(input);
-      var drawing =
-          DiagramParser.parse(
-              new String(input.readAllBytes(), StandardCharsets.UTF_8), RenderOptions.DEFAULT);
+      var drawing = DiagramParser.parse(DiagramFixtures.text("foreground-order"), RenderOptions.DEFAULT);
       assertEquals(2, drawing.labels.size());
       for (var label : drawing.labels) {
         assertEquals(
             label.text.stripTrailing().equals("X") ? Color.WHITE : Color.BLACK, label.colour);
       }
-    }
   }
 }
