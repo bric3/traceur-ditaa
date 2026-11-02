@@ -408,7 +408,13 @@ final class DiagramParser {
     drawing.figures.sort(
         Comparator.comparing((Drawing.Figure f) -> f.kind != Drawing.Figure.Kind.STORAGE)
             .thenComparing(f -> f.kind == Drawing.Figure.Kind.MARKER)
-            .thenComparing(Comparator.comparingDouble((Drawing.Figure f) -> f.area).reversed()));
+            .thenComparing(
+                Comparator.comparingDouble(
+                        (Drawing.Figure f) ->
+                            f.kind == Drawing.Figure.Kind.STORAGE
+                                ? f.path.getBounds2D().getCenterY()
+                                : f.area)
+                    .reversed()));
 
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) if (consumed[y][x]) grid[y][x] = ' ';
