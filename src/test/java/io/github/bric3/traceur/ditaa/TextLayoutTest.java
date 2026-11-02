@@ -9,6 +9,7 @@ import java.io.ByteArrayOutputStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.w3c.dom.Element;
 
 class TextLayoutTest {
@@ -118,5 +119,14 @@ class TextLayoutTest {
     assertEquals("B ", drawing.labels.get(1).text);
     assertEquals(20, drawing.labels.get(0).x);
     assertEquals(20, drawing.labels.get(1).x);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"WordZZ", "WordZZ more"})
+  void paddingAfterASingleCharacterDoesNotAlignWithAnotherWordsEnd(String heading) {
+    var drawing = DiagramParser.parse(heading + "\n    3", RenderOptions.DEFAULT);
+    var label = drawing.labels.get(1);
+    assertEquals("3 ", label.text);
+    assertEquals(70, label.x + width(label) / 2, .5);
   }
 }

@@ -453,7 +453,7 @@ final class DiagramParser {
         int end = start + label.length() - 1;
         long group = (long) groups[y][start] << 32;
         int otherStarts = starts.getOrDefault(group | start, 0) - 1;
-        int otherEnds = ends.getOrDefault(group | end, 0) - (textEndsAt(end, y) ? 1 : 0);
+        int otherEnds = textEndsAt(end, y) ? ends.getOrDefault(group | end, 0) - 1 : 0;
         Drawing.TextAlignment alignment =
             otherStarts > otherEnds
                 ? Drawing.TextAlignment.LEFT
