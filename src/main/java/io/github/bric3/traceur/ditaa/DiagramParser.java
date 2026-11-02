@@ -545,7 +545,7 @@ final class DiagramParser {
     Set<Long> drawn = new HashSet<>(boundary);
     for (int seed : orderedConnectors) {
       int cell = seed / 4;
-      connectors(cell % width, cell / width, boundary, drawn, drawing, 1 << (seed % 4));
+      connectors(cell % width, cell / width, boundary, drawn, drawing, 1 << (seed % 4), null);
     }
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
@@ -1028,13 +1028,14 @@ final class DiagramParser {
     }
     prepareConnectors(blocked);
     Set<Long> drawn = new HashSet<>(blocked);
+    Set<Long> connectedEndpoints = new HashSet<>();
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
         if (Integer.bitCount(links[y][x]) < 3) {
           continue;
         }
         for (int direction : connectorDirections(y * width + x)) {
-          connectors(x, y, blocked, drawn, drawing, 1 << direction);
+          connectors(x, y, blocked, drawn, drawing, 1 << direction, connectedEndpoints);
         }
       }
     }
@@ -1116,7 +1117,7 @@ final class DiagramParser {
   }
 
   private void connectors(int x, int y, Set<Long> boundary, Set<Long> drawn, Drawing drawing) {
-    connectors(x, y, boundary, drawn, drawing, 15);
+    connectors(x, y, boundary, drawn, drawing, 15, null);
   }
 
   private void connectors(
@@ -1125,7 +1126,8 @@ final class DiagramParser {
       Set<Long> boundary,
       Set<Long> drawn,
       Drawing drawing,
-      int mask
+      int mask,
+      Set<Long> connectedEndpoints
   ) {
     for (int direction = 0; direction < 4; direction++) {
       if ((links[y][x] & mask & (1 << direction)) == 0) {
@@ -1158,6 +1160,15 @@ final class DiagramParser {
         py = ny;
         d = Integer.numberOfTrailingZeros(remaining);
       } while (true);
+      if (connectedEndpoints != null) {
+        Point2D.Double start = points.get(0), end = points.get(points.size() - 1);
+        // Supplemental contours retain the first route between each pair of junctions.
+        if (!connectedEndpoints.add(
+            edge((int) start.x, (int) start.y, (int) end.x, (int) end.y)
+        )) {
+          continue;
+        }
+      }
       addConnector(points, boundary, drawing, true);
     }
   }
@@ -1773,6 +1784,9 @@ final class DiagramParser {
       }
       Rectangle2D bounds = gridPath.getBounds2D();
       int row = (int) bounds.getMinY() + 1;
+      if (row >= bounds.getMaxY()) {
+        return false;
+      }
       boolean inside = false;
       // Consecutive boundary cells each toggle the fill-seed scan at concave corners.
       for (int x = (int) bounds.getMinX(); x <= bounds.getMaxX() + 1; x++) {

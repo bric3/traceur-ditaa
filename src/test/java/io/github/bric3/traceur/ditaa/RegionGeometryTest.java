@@ -18,6 +18,22 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class RegionGeometryTest {
   @TableTest({
+    "Compartments",
+    "{2, 3, 4}   "
+  })
+  void oneCellHighCompartmentsKeepOnlyTheirOwnFills(int compartments) {
+    String row = "+".repeat(compartments + 1);
+    var drawing = DiagramParser.parse(row + "\n" + row, new RenderOptions(1, false, true));
+    assertEquals(compartments, drawing.figures.size());
+    assertTrue(drawing.labels.isEmpty());
+    for (var figure : drawing.figures) {
+      assertEquals(Drawing.Figure.Kind.REGION, figure.kind);
+      assertEquals(35, figure.path.getBounds2D().getMinY());
+      assertEquals(49, figure.path.getBounds2D().getMaxY());
+    }
+  }
+
+  @TableTest({
     "layout | arrows",
     "0      | 2     ",
     "1      | 1     ",
