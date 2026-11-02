@@ -17,6 +17,8 @@ jobs:
     env:
       TEST_SLOT: ${{ strategy.job-index }}/${{ strategy.job-total }}
       CORPUS_REPORT: build/comparison/${{ strategy.job-index }}-${{ strategy.job-total }}/all
+      ORG_GRADLE_PROJECT_releaseTag: ${{ github.event.release.tag_name }}
+      ORG_GRADLE_PROJECT_releasePrerelease: ${{ github.event.release.prerelease }}
     steps:
       - name: Checkout tested revision
         uses: actions/checkout@v6
@@ -40,6 +42,8 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
+        env:
+          GRADLE_BUILD_ACTION_CACHE_KEY_JOB_INSTANCE: ${{ env.TEST_SLOT }}
 
       - name: Select test slot
         run: ./gradlew selectTestSlot -PtestSlot="$TEST_SLOT"

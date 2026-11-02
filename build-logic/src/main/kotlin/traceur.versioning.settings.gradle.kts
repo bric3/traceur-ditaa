@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 import com.javiersc.semver.settings.gradle.plugin.SemverSettingsExtension
 
-val releaseTag = providers.gradleProperty("releaseTag").orNull
+val releaseTag = providers.gradleProperty("releaseTag").filter { it.isNotBlank() }.orNull
 
 if (releaseTag == null) {
     apply(plugin = "com.javiersc.semver")

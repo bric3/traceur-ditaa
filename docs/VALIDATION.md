@@ -72,6 +72,13 @@ Corpus reference processes and cold-start measurements start unprimed.
 Cache verification logs: `build/review/corpus-build-cache/`.
 See [suite commands and cache inputs](COMPATIBILITY.md#corpus-suite).
 
+[CI run 41537844323](https://github.com/bric3/traceur-ditaa/actions/runs/41537844323)
+populated all four slot caches. A
+[different caller workflow](https://github.com/bric3/traceur-ditaa/actions/runs/41540441472)
+then reused the tested classes on fresh runners with a local `v0.1.0` release-tag
+fixture. Every slot restored `corpusTest FROM-CACHE` under version `0.1.0`;
+each Gradle invocation took 2-4 seconds.
+
 ## Publication checks
 
 `nmcpZipAggregation -Psnapshot=true` staged `0.1.1-SNAPSHOT` locally with library,

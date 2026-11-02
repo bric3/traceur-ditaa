@@ -88,6 +88,16 @@ sourceSets.test {
     runtimeClasspath += tools.output
 }
 
+val corpusTools = tasks.register<Sync>("prepareCorpusTools") {
+    group = "verification"
+    description = "Collects the corpus comparison harness classes."
+    from(tools.output) {
+        include("CorpusComparison*.class", "PngReferenceProcess*.class",
+            "io/github/bric3/traceur/ditaa/testing/ReferenceFonts*.class")
+    }
+    into(layout.buildDirectory.dir("corpus-tools"))
+}
+
 val selectTestSlot = tasks.named<SelectTestSlot>("selectTestSlot") {
     manifest = layout.projectDirectory.file("corpus/manifest.tsv")
 }
@@ -98,7 +108,7 @@ val corpusArguments = objects.newInstance<CorpusTestArguments>().apply {
     pngReference = layout.projectDirectory.file(providers.gradleProperty("pngReference").orElse("build/references/plantuml.jar"))
     svgReference = layout.projectDirectory.file(providers.gradleProperty("svgReference").orElse("build/references/ditaa.jar"))
     rasterizer = providers.gradleProperty("rasterizer").orElse("rsvg-convert")
-    rendererClasspath.from(tools.runtimeClasspath)
+    rendererClasspath.from(corpusTools, sourceSets.main.get().output)
     report = layout.buildDirectory.dir(providers.gradleProperty("testSlot").orElse("0/1")
         .zip(providers.gradleProperty("testInput").orElse("all")) { slot, input ->
             "comparison/${slot.replace('/', '-')}/$input"
@@ -122,8 +132,8 @@ testing {
         register<JvmTestSuite>("corpusTest") {
             useJUnitJupiter(libs.versions.junit)
             dependencies {
-                implementation(project())
-                implementation(tools.output)
+                implementation(sourceSets.main.get().output)
+                implementation(files(corpusTools))
             }
             targets.all {
                 testTask.configure {

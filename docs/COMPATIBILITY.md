@@ -159,12 +159,16 @@ jbang tools/FetchPinnedCorpus.java build/test-slots/manifest.tsv /tmp/traceur-di
 
 Gradle caches suite results and comparison files. Cache inputs include:
 
-- Selected manifest, corpus files, renderer classes and reference JARs.
+- Selected manifest, corpus files, renderer and comparison harness classes, and reference JARs.
 - JDK release, OS, architecture and runner image.
 - Font files, font configuration and SVG rasteriser version.
 
-CI's `setup-gradle` action restores the local build cache per matrix slot.
-`main` saves entries that later builds and pull requests can reuse.
+The compiled renderer classes include debug line numbers. Javadoc edits that
+move executable source lines therefore invalidate cached suite results.
+Benchmark and badge tool changes retain cached corpus results.
+
+CI and releases share one `setup-gradle` cache per test slot.
+`main` saves entries that later builds, pull requests and releases can reuse.
 Use `--rerun-tasks` to force execution. Pin the rendering environment for repeatable pixels.
 
 ## Extend the corpus
