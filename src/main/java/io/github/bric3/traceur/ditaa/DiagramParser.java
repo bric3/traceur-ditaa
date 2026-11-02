@@ -347,7 +347,11 @@ final class DiagramParser {
                       parent ->
                           parent.component != region.component
                               && parent.gridPath.contains(region.points.get(0)));
-      if (covered.getOrDefault(region.component, 0.0) < region.area || nested) regions.add(region);
+      // An exterior fill seed retains the enclosing contour before its compartments.
+      boolean exteriorFill = parts.getOrDefault(region.component, 0) > 1 && region.fillsExterior();
+      if (exteriorFill) regions.add(0, region);
+      else if (covered.getOrDefault(region.component, 0.0) < region.area || nested)
+        regions.add(region);
     }
     for (Region region : regions)
       for (long edge : region.edges) {
@@ -1321,6 +1325,20 @@ final class DiagramParser {
       gridPath.moveTo(points.get(0).x, points.get(0).y);
       for (int i = 1; i < points.size(); i++) gridPath.lineTo(points.get(i).x, points.get(i).y);
       gridPath.closePath();
+    }
+
+    boolean fillsExterior() {
+      Set<Point2D.Double> perimeter = new HashSet<>(points);
+      if (perimeter.size() != points.size()) return false;
+      Rectangle2D bounds = gridPath.getBounds2D();
+      int row = (int) bounds.getMinY() + 1;
+      boolean inside = false;
+      // Consecutive boundary cells each toggle the fill-seed scan at concave corners.
+      for (int x = (int) bounds.getMinX(); x <= bounds.getMaxX() + 1; x++) {
+        if (perimeter.contains(new Point2D.Double(x, row))) inside = !inside;
+        else if (inside) return !gridPath.contains(x, row);
+      }
+      return true;
     }
   }
 }
