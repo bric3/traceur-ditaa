@@ -811,13 +811,18 @@ final class DiagramParser {
     Point2D.Double point = points.get(index);
     double x = cx(point.x), y = cy(point.y);
     char c = at((int) point.x, (int) point.y);
-    // A straight arm extends through an adjacent open rounded corner.
+    // A straight arm continues through an adjacent open corner or junction.
     if ((c == '+' || c == '*') && Integer.bitCount(links[(int) point.y][(int) point.x]) > 2) {
       Point2D.Double adjacent = points.get(index == 0 ? 1 : index - 1);
       int dx = (int) (point.x - adjacent.x), dy = (int) (point.y - adjacent.y);
       int ox = (int) point.x + dx, oy = (int) point.y + dy;
       char opposite = at(ox, oy);
-      if (opposite == '/' || opposite == '\\') {
+      if (opposite == '/'
+          || opposite == '\\'
+          || (opposite == '+' || opposite == '*')
+              && Integer.bitCount(links[oy][ox]) >= 2
+              && links[oy][ox] != 5
+              && links[oy][ox] != 10) {
         for (int d = 0; d < 4; d++)
           if (DX[d] == dx
               && DY[d] == dy
