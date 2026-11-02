@@ -5,11 +5,11 @@ fails. The historical cold-start measurements below were recorded on 2026-11-01.
 
 ## Build
 
-All 1,984 tests pass across Java 11 and Java 25 on macOS. The same 992 tests pass
-on each JDK in isolated Linux containers. The suite includes 816 exact PNG/SVG
+All 2,046 tests pass across Java 11 and Java 25 on macOS. The same 1,023 tests pass
+on each JDK in isolated Linux containers. The suite includes 840 exact PNG/SVG
 comparisons of project-authored fixtures. It covers encoding, shapes, connectors,
 options, text, allocation limits, unavailable PNG encoders, write failures and
-concurrent rendering. Renderer coverage is 99.5% of lines and 98.5% of branches,
+concurrent rendering. Renderer coverage is 99.5% of lines and 98.6% of branches,
 with no exclusions. `check` requires at least 99% line and 97% branch coverage.
 Library classes target bytecode version 55 and depend only on
 `java.base` and `java.desktop`. Release JARs include the MPL-2.0 licence.
@@ -22,9 +22,9 @@ All 1,920 cases completed across both formats and four option variants:
 
 | Format | Exact matches | Differences |
 | ------ | ------------- | ----------- |
-| PNG    | 734           | 226         |
+| PNG    | 738           | 222         |
 | SVG    | 654           | 306         |
-| Total  | 1,388         | 532         |
+| Total  | 1,392         | 528         |
 
 This improves the initial 76 exact matches; complete compatibility remains unmet.
 Complex boundaries, text layout, dashed curves and combined features still differ.

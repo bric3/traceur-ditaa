@@ -12,6 +12,33 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class ConnectorGeometryTest {
+  static Stream<Arguments> roundedJunctions() {
+    return Stream.of(
+        Arguments.of("/--\n+--\n|", false, 35, 63),
+        Arguments.of("|\n+--\n\\--", false, 35, 63),
+        Arguments.of("--\\\n--+\n  |", false, 35, 63),
+        Arguments.of("-+\\\n ||\n ||", true, 25, 45),
+        Arguments.of("/+-\n||\n||", true, 25, 45),
+        Arguments.of("/--\n|\n+--\n|", false, 63, 77),
+        Arguments.of("/-----\\\n+-----/\n|", false, 49, 69));
+  }
+
+  @ParameterizedTest
+  @MethodSource("roundedJunctions")
+  void aStraightArmExtendsThroughTheNeighbouringOpenCorner(
+      String text, boolean horizontal, double start, double end) {
+    var drawing = DiagramParser.parse(text, RenderOptions.DEFAULT);
+    var bounds =
+        drawing.figures.stream()
+            .filter(figure -> figure.kind == Drawing.Figure.Kind.CONNECTOR)
+            .map(figure -> figure.path.getBounds2D())
+            .filter(box -> horizontal ? box.getHeight() == 0 : box.getWidth() == 0)
+            .findFirst()
+            .orElseThrow();
+    assertEquals(start, horizontal ? bounds.getMinX() : bounds.getMinY());
+    assertEquals(end, horizontal ? bounds.getMaxX() : bounds.getMaxY());
+  }
+
   @ParameterizedTest
   @CsvSource({"+-,30,39", "-+,20,29", "+-+,30,39", "++-,35,45", "-++,25,35", "+----,35,65"})
   void plusEndpointsLeaveTheReferenceLineExtent(String text, double left, double right) {
