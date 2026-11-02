@@ -9,6 +9,8 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 final class SvgWriter {
+  private SvgWriter() {}
+
   static void write(Drawing drawing, OutputStream output) throws IOException {
     StringBuilder svg = new StringBuilder();
     StringBuilder pathData = new StringBuilder();

@@ -16,6 +16,8 @@ import java.util.Arrays;
 import javax.imageio.ImageIO;
 
 final class PngWriter {
+  private PngWriter() {}
+
   static void write(Drawing drawing, OutputStream output) throws IOException {
     BufferedImage image =
         new BufferedImage(drawing.width, drawing.height, BufferedImage.TYPE_INT_RGB);
