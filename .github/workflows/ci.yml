@@ -183,28 +183,76 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download JARs from this build
+      - name: Checkout tested revision
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Download tested renderer and tools
         uses: actions/download-artifact@v7
         with:
-          name: traceur-ditaa-jars
-          path: artifacts
+          name: traceur-ditaa-classes
+          path: build/classes/java
 
-      - name: Create or update draft release
+      - name: Select newest draft release
+        id: draft
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const releases = await github.paginate(github.rest.repos.listReleases, context.repo);
+            const draft = releases.filter(r => r.draft)
+              .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+            if (!draft) return core.notice('No draft release to refresh.');
+            core.setOutput('id', draft.id);
+            core.setOutput('tag', draft.tag_name);
+            core.setOutput('prerelease', draft.prerelease);
+
+      - name: Set up Gradle
+        if: steps.draft.outputs.id != ''
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Package tested classes with the draft version
+        if: steps.draft.outputs.id != ''
+        env:
+          RELEASE_TAG: ${{ steps.draft.outputs.tag }}
+          RELEASE_PRERELEASE: ${{ steps.draft.outputs.prerelease }}
+        run: |
+          git tag --no-sign "$RELEASE_TAG" "$GITHUB_SHA"
+          ./gradlew jar sourcesJar javadocJar -x compileJava -PreleaseTag="$RELEASE_TAG" -PreleasePrerelease="$RELEASE_PRERELEASE"
+
+      - name: Update selected draft release
+        if: steps.draft.outputs.id != ''
         uses: ncipollo/release-action@v1
         with:
-          tag: development-preview
+          tag: ${{ steps.draft.outputs.tag }}
           commit: ${{ github.sha }}
-          name: Development preview
           draft: true
           allowUpdates: true
-          skipIfReleaseExists: true
+          updateOnlyUnreleased: true
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true
+          omitPrereleaseDuringUpdate: true
           removeArtifacts: true
           artifactErrorsFailBuild: true
-          artifacts: artifacts/*.jar
+          artifacts: build/libs/*.jar
           makeLatest: false
-          body: |
-            Experimental Java 11 library for rendering ditaa diagrams as PNG and SVG.
-            All pinned corpus comparisons match exactly.
 
-            Built from ${{ github.sha }}.
-            See the [validation snapshot](${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/docs/VALIDATION.md) for comparison and cold-start results.
+      - name: Verify updated draft
+        if: steps.draft.outputs.id != ''
+        uses: actions/github-script@v8
+        env:
+          RELEASE_ID: ${{ steps.draft.outputs.id }}
+        with:
+          script: |
+            const {data: draft} = await github.rest.repos.getRelease({
+              ...context.repo, release_id: Number(process.env.RELEASE_ID)
+            });
+            if (!draft.draft || draft.target_commitish !== context.sha || draft.assets.length !== 3) {
+              core.setFailed('Draft target or JAR uploads were not updated.');
+            }

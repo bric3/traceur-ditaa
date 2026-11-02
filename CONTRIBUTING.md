@@ -58,8 +58,13 @@ the POM, JAR filenames and `Implementation-Version` manifest entry.
 ## CI and releases
 
 [CI](.github/workflows/ci.yml) builds pull requests and pushes to `main`.
-Successful `main` builds publish snapshots and prepare the "Development preview"
-draft release, using the `development-preview` tag and tested JARs.
+Successful `main` builds publish snapshots and refresh the newest draft release.
+Create the draft with its intended version tag, such as `v0.1.0`. CI preserves
+the title and release notes, updates its target commit, and packages the tested
+classes with that version. The release action replaces the assets, and CI checks
+the resulting draft target and three JAR uploads.
+The tag must remain uncreated until publication; CI creates it only in its
+private checkout for versioning. If there is no draft, the refresh is skipped.
 They also publish the combined Java 11/25 JaCoCo line coverage to `coverage.json`
 on the `badges` branch. The README badge reads this data through Shields.io;
 updates can take a few minutes to appear because of image caching.
