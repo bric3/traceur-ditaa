@@ -8,9 +8,28 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class ConnectorGeometryTest {
+  @ParameterizedTest
+  @CsvSource({"+-,30,39", "-+,20,29", "+-+,30,39", "++-,35,45", "-++,25,35", "+----,35,65"})
+  void plusEndpointsLeaveTheReferenceLineExtent(String text, double left, double right) {
+    var drawing = DiagramParser.parse(text, RenderOptions.DEFAULT);
+    assertEquals(1, drawing.figures.size());
+    assertTrue(drawing.labels.isEmpty());
+    var bounds = drawing.figures.get(0).path.getBounds2D();
+    assertEquals(left, bounds.getMinX());
+    assertEquals(right, bounds.getMaxX());
+  }
+
+  @Test
+  void adjacentPlusEndpointsAreConsumedTogether() {
+    var drawing = DiagramParser.parse("++", RenderOptions.DEFAULT);
+    assertTrue(drawing.figures.isEmpty());
+    assertTrue(drawing.labels.isEmpty());
+  }
+
   static Stream<Arguments> shortArrows() {
     return Stream.of(
         Arguments.of("->", 1, 20, 35, 35, 35),

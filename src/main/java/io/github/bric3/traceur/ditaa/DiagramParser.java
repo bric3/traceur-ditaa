@@ -182,6 +182,7 @@ final class DiagramParser {
           }
         }
       }
+    removePlusEnds();
     // A half-edge walk keeps the bounded regions separate when boxes share boundaries.
     boolean[][][] visited = new boolean[height][width][4];
     List<Region> regions = new ArrayList<>();
@@ -405,6 +406,24 @@ final class DiagramParser {
         if (intersectsArrow(positioned.bounds(), arrowCells)) positioned.colour = Color.WHITE;
         drawing.labels.add(positioned);
       }
+    }
+  }
+
+  private void removePlusEnds() {
+    // Snapshot the endpoints so adjacent '+' cells retain their original degree.
+    List<Integer> ends = new ArrayList<>();
+    for (int y = 0; y < height; y++)
+      for (int x = 0; x < width; x++) {
+        if (at(x, y) == '+' && Integer.bitCount(links[y][x]) == 1) ends.add(y * width + x);
+      }
+    for (int cell : ends) {
+      int x = cell % width, y = cell / width;
+      consumed[y][x] = true;
+      int connections = links[y][x];
+      links[y][x] = 0;
+      if (connections == 0) continue;
+      int direction = Integer.numberOfTrailingZeros(connections);
+      links[y + DY[direction]][x + DX[direction]] &= ~(1 << ((direction + 2) % 4));
     }
   }
 
