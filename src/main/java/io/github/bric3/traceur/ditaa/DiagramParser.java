@@ -930,10 +930,13 @@ final class DiagramParser {
       // Text contrast uses the boundary polygon before corner and shape transforms.
       if (i == 0) region.textBackground.moveTo(x, y);
       else region.textBackground.lineTo(x, y);
-      x = (int) x;
-      y = (int) y;
       boolean rounded =
           at((int) point.x, (int) point.y) == '/' || at((int) point.x, (int) point.y) == '\\';
+      // Preserve fractional shared-edge offsets in curve control points.
+      if (!rounded) {
+        x = (int) x;
+        y = (int) y;
+      }
       double ix = x, iy = y;
       if (rounded) {
         ix =
