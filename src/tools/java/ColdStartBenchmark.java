@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MPL-2.0 */
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -14,7 +15,7 @@ public final class ColdStartBenchmark {
       throw new IllegalArgumentException("Supply -Poracle=PLANTUML_JAR -PsvgOracle=DITAA_JAR");
     Path oracle = Path.of(args[0]).toAbsolutePath();
     Path svgOracle = Path.of(args[1]).toAbsolutePath();
-    Path dir = Files.createDirectories(Path.of("build/cold-start").toAbsolutePath());
+    Path dir = Files.createDirectories(Path.of(System.getProperty("benchmark.directory", "build/cold-start")).toAbsolutePath());
     StringBuilder results =
         new StringBuilder(
             "size\tformat\timplementation\tmedianMs\tp95Ms\tmedianRssMiB\tp95RssMiB\n");
@@ -47,9 +48,8 @@ public final class ColdStartBenchmark {
     for (int size : new int[] {1, 10, 50}) {
       StringBuilder diagram = new StringBuilder();
       for (int i = 0; i < size; i++) diagram.append("+----------+\n| Service  |\n+----------+\n");
-      Path input = dir.resolve("input.ditaa"), wrapped = dir.resolve("reference.puml");
+      Path input = dir.resolve("input.ditaa");
       Files.writeString(input, diagram);
-      Files.writeString(wrapped, "@startditaa\n" + diagram + "@endditaa\n");
       for (String format : List.of("PNG", "SVG")) {
         long[][] timings = new long[2][30];
         long[][] rss = new long[2][30];
@@ -79,7 +79,8 @@ public final class ColdStartBenchmark {
                       "true",
                       "true"));
             else if (format.equals("PNG"))
-              command.addAll(List.of("-jar", oracle.toString(), "-nometadata", wrapped.toString()));
+              command.addAll(List.of("-cp", System.getProperty("java.class.path") + File.pathSeparator + oracle,
+                  "OraclePngProcess", input.toString(), rendered.toString(), "1", "true", "true"));
             else
               command.addAll(
                   List.of(
@@ -171,6 +172,6 @@ public final class ColdStartBenchmark {
     }
     System.out.print(results);
     if (!passed)
-      throw new AssertionError("Cold-start gate failed; see build/cold-start/results.tsv");
+      throw new AssertionError("Cold-start gate failed; see " + dir.resolve("results.tsv"));
   }
 }
