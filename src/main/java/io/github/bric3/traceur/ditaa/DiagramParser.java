@@ -37,6 +37,10 @@ final class DiagramParser {
   private final int[][] links;
   private final byte[][] connectorStyles;
   private final boolean[][] consumed;
+  private final Set<Long> repeatedConnectorEdges = new HashSet<>();
+  private final Map<Long, Boolean> interiorBridges = new HashMap<>();
+  private final Set<Long> mixedCycleEdges = new HashSet<>();
+  private final List<Drawing.Figure> interiorFigures = new ArrayList<>();
   private final RenderOptions options;
   private final int cellWidth;
   private final int cellHeight;
@@ -204,6 +208,10 @@ final class DiagramParser {
     boolean[][][] visited = new boolean[height][width][4];
     List<Region> regions = new ArrayList<>();
     Map<Integer, Region> enclosing = new HashMap<>();
+    Set<Integer> trimmedExteriors = new HashSet<>(), openedExteriors = new HashSet<>();
+    Map<Integer, Set<Long>> innerBridges = new HashMap<>(),
+        outerBridges = new HashMap<>(),
+        exteriorEdges = new HashMap<>();
     int[][] components = components(regionLinks);
     Set<Long> boundary = new HashSet<>();
     Set<Long> sharedEdges = new HashSet<>();
@@ -243,13 +251,41 @@ final class DiagramParser {
             Set<Long> bridges = new HashSet<>();
             for (long edge : edges) if (!faceEdges.add(edge)) bridges.add(edge);
             faceEdges.removeAll(bridges);
+            if (!bridges.isEmpty()) {
+              Map<Integer, Set<Long>> target = area > 0 ? innerBridges : outerBridges;
+              target.computeIfAbsent(components[y][x], ignored -> new HashSet<>()).addAll(bridges);
+              if (area < 0) exteriorEdges.put(components[y][x], faceEdges);
+            }
+            boolean shortBranch = false;
+            // Splitting a one-cell stub consumes its junction and opens the contour.
+            for (int i = 0; i < points.size(); i++) {
+              Point2D.Double previous = points.get((i + points.size() - 1) % points.size());
+              if (!previous.equals(points.get((i + 1) % points.size()))) continue;
+              int bx = (int) previous.x, by = (int) previous.y;
+              for (int directionIndex = 0; directionIndex < 4; directionIndex++)
+                shortBranch |=
+                    faceEdges.contains(
+                        edge(bx, by, bx + DX[directionIndex], by + DY[directionIndex]));
+            }
             boolean dashed = false;
             for (long edge : faceEdges) {
               int a = (int) (edge >>> 32), b = (int) edge;
               char start = at(a % width, a / width), end = at(b % width, b / width);
               dashed |= start == '=' || start == ':' || end == '=' || end == ':';
             }
-            if (area < 0 && !bridges.isEmpty()) continue;
+            if (area > 0 && !bridges.isEmpty()) {
+              List<Point2D.Double> outline = trimBoundary(points, faceEdges);
+              if (outline != null) points = outline;
+            }
+            if (area < 0 && !bridges.isEmpty()) {
+              if (shortBranch) {
+                openedExteriors.add(components[y][x]);
+                continue;
+              }
+              points = trimBoundary(points, faceEdges);
+              if (points == null) continue;
+              trimmedExteriors.add(components[y][x]);
+            }
             if (area < 0) Collections.reverse(points);
             Region region =
                 new Region(
@@ -258,14 +294,41 @@ final class DiagramParser {
                     dashed,
                     components[y][x],
                     faceEdges,
-                    !bridges.isEmpty());
+                    !bridges.isEmpty(),
+                    shortBranch);
             if (area > 0) regions.add(region);
             else enclosing.put(region.component, region);
           }
         }
       }
     // An inward branch opens a compartment when its enclosing boundary remains closed.
-    regions.removeIf(region -> region.branched && enclosing.containsKey(region.component));
+    // Each opened side still paints an outline when the opposite side stays closed.
+    Set<Long> supplementalConnectorEdges = new HashSet<>();
+    for (Region region : regions) {
+      if (region.shortBranch && !enclosing.containsKey(region.component))
+        repeatedConnectorEdges.addAll(region.edges);
+      if (!region.branched) continue;
+      if (trimmedExteriors.contains(region.component)
+          || openedExteriors.contains(region.component)) {
+        for (long edge : innerBridges.getOrDefault(region.component, Set.of()))
+          interiorBridges.put(edge, true);
+        for (long edge : outerBridges.getOrDefault(region.component, Set.of()))
+          interiorBridges.put(edge, false);
+        mixedCycleEdges.addAll(region.edges);
+        mixedCycleEdges.addAll(exteriorEdges.getOrDefault(region.component, Set.of()));
+      }
+      if (region.shortBranch && trimmedExteriors.contains(region.component))
+        supplementalConnectorEdges.addAll(region.edges);
+      if (!region.shortBranch && openedExteriors.contains(region.component))
+        supplementalConnectorEdges.addAll(region.edges);
+      if (!region.shortBranch && trimmedExteriors.contains(region.component)) {
+        Region exterior = enclosing.get(region.component);
+        for (long edge : region.edges) if (exterior.edges.contains(edge)) sharedEdges.add(edge);
+      }
+    }
+    regions.removeIf(
+        region ->
+            region.branched && (enclosing.containsKey(region.component) || region.shortBranch));
     Map<Integer, Double> covered = new HashMap<>();
     Map<Integer, Integer> parts = new HashMap<>();
     for (Region region : regions) {
@@ -320,6 +383,9 @@ final class DiagramParser {
     regions.sort(Comparator.comparingDouble((Region r) -> r.renderArea).reversed());
     for (Region region : regions) drawing.figures.add(region.figure);
     for (Region region : shadowOrder) drawing.shadowFigures.add(region.figure);
+
+    if (!supplementalConnectorEdges.isEmpty())
+      supplementalContours(supplementalConnectorEdges, drawing);
 
     // Draw each remaining connector as a continuous path so dash phase spans cells.
     List<Integer> orderedConnectors = prepareConnectors(boundary);
@@ -407,6 +473,7 @@ final class DiagramParser {
         }
       }
 
+    drawing.figures.addAll(interiorFigures);
     drawing.figures.sort(
         Comparator.comparing((Drawing.Figure f) -> f.kind != Drawing.Figure.Kind.STORAGE)
             .thenComparing(f -> f.kind == Drawing.Figure.Kind.MARKER)
@@ -673,6 +740,48 @@ final class DiagramParser {
     return directions;
   }
 
+  private boolean boundaryPoint(Point2D.Double point, Set<Long> edges) {
+    int x = (int) point.x, y = (int) point.y;
+    for (int direction = 0; direction < 4; direction++)
+      if (edges.contains(edge(x, y, x + DX[direction], y + DY[direction]))) return true;
+    return false;
+  }
+
+  private List<Point2D.Double> trimBoundary(List<Point2D.Double> points, Set<Long> edges) {
+    List<Point2D.Double> result = new ArrayList<>();
+    for (Point2D.Double point : points)
+      if (boundaryPoint(point, edges)
+          && (result.isEmpty() || !result.get(result.size() - 1).equals(point))) result.add(point);
+    if (result.size() > 1 && result.get(0).equals(result.get(result.size() - 1)))
+      result.remove(result.size() - 1);
+    // A bridge joining separate cycles cannot produce one closed outline.
+    for (int i = 0; i < result.size(); i++) {
+      Point2D.Double first = result.get(i), second = result.get((i + 1) % result.size());
+      if (!edges.contains(edge((int) first.x, (int) first.y, (int) second.x, (int) second.y)))
+        return null;
+    }
+    return result;
+  }
+
+  private void supplementalContours(Set<Long> edges, Drawing drawing) {
+    Set<Long> blocked = new HashSet<>();
+    for (int y = 0; y < height; y++)
+      for (int x = 0; x < width; x++)
+        for (int direction = 0; direction < 4; direction++) {
+          if ((links[y][x] & (1 << direction)) == 0) continue;
+          long edge = edge(x, y, x + DX[direction], y + DY[direction]);
+          if (!edges.contains(edge)) blocked.add(edge);
+        }
+    prepareConnectors(blocked);
+    Set<Long> drawn = new HashSet<>(blocked);
+    for (int y = 0; y < height; y++)
+      for (int x = 0; x < width; x++) {
+        if (Integer.bitCount(links[y][x]) < 3) continue;
+        for (int direction : connectorDirections(y * width + x))
+          connectors(x, y, blocked, drawn, drawing, 1 << direction);
+      }
+  }
+
   private void removePlusEnds() {
     // Snapshot the endpoints so adjacent '+' cells retain their original degree.
     List<Integer> ends = new ArrayList<>();
@@ -772,6 +881,13 @@ final class DiagramParser {
         d = Integer.numberOfTrailingZeros(remaining);
       } while (true);
       if (hidden) continue;
+      Boolean interior = null;
+      for (int i = 1; interior == null && i < points.size(); i++) {
+        Point2D.Double before = points.get(i - 1), after = points.get(i);
+        interior =
+            interiorBridges.get(edge((int) before.x, (int) before.y, (int) after.x, (int) after.y));
+      }
+      if (interior != null) orientMixedStub(points);
       Path2D.Double path = new Path2D.Double();
       Point2D.Double startPosition = connectorEndpoint(points, 0, boundary);
       path.moveTo(startPosition.x, startPosition.y);
@@ -800,10 +916,40 @@ final class DiagramParser {
       Point2D.Double endPosition = connectorEndpoint(points, points.size() - 1, boundary);
       path.lineTo(endPosition.x, endPosition.y);
       corners.add(new Point2D.Float((float) cx(end.x), (float) cy(end.y)));
-      drawing.figures.add(
+      Drawing.Figure figure =
           new Drawing.Figure(
-              path, null, dashed, Drawing.Figure.Kind.CONNECTOR, polygonArea(corners)));
+              path, null, dashed, Drawing.Figure.Kind.CONNECTOR, polygonArea(corners));
+      // Exterior stubs precede interior stubs at shared antialiased junctions.
+      List<Drawing.Figure> target =
+          Boolean.TRUE.equals(interior) ? interiorFigures : drawing.figures;
+      target.add(figure);
+      boolean repeated = true;
+      for (int i = 1; repeated && i < points.size(); i++) {
+        Point2D.Double before = points.get(i - 1), after = points.get(i);
+        repeated =
+            repeatedConnectorEdges.contains(
+                edge((int) before.x, (int) before.y, (int) after.x, (int) after.y));
+      }
+      if (repeated) target.add(figure);
     }
+  }
+
+  private void orientMixedStub(List<Point2D.Double> points) {
+    boolean rootAtStart = boundaryPoint(points.get(0), mixedCycleEdges);
+    if (rootAtStart == boundaryPoint(points.get(points.size() - 1), mixedCycleEdges)) return;
+    int first = rootAtStart ? 1 : 0, last = rootAtStart ? points.size() - 1 : points.size() - 2;
+    Point2D.Double firstPoint = points.get(first), lastPoint = points.get(last);
+    if ("<>^vV".indexOf(at((int) firstPoint.x, (int) firstPoint.y)) >= 0) first++;
+    if ("<>^vV".indexOf(at((int) lastPoint.x, (int) lastPoint.y)) >= 0) last--;
+    if (first > last) return;
+    int cells = last - first + 1;
+    Point2D.Double root = points.get(rootAtStart ? 0 : points.size() - 1);
+    Point2D.Double near = cells == 1 ? root : points.get(rootAtStart ? first : last);
+    Point2D.Double far = points.get(rootAtStart ? last : first);
+    int capacity = 16;
+    while (Math.max(2, cells) > capacity * .75) capacity *= 2;
+    boolean rootFirst = boundaryBucket(near, capacity) < boundaryBucket(far, capacity);
+    if (rootAtStart != rootFirst) Collections.reverse(points);
   }
 
   private Point2D.Double connectorEndpoint(
@@ -1139,6 +1285,7 @@ final class DiagramParser {
     final int component;
     final Set<Long> edges;
     final boolean branched;
+    final boolean shortBranch;
     Color colour = Color.WHITE;
     String tag = "";
     Drawing.Figure figure;
@@ -1150,13 +1297,15 @@ final class DiagramParser {
         boolean dashed,
         int component,
         Set<Long> edges,
-        boolean branched) {
+        boolean branched,
+        boolean shortBranch) {
       this.points = points;
       this.area = area;
       this.dashed = dashed;
       this.component = component;
       this.edges = edges;
       this.branched = branched;
+      this.shortBranch = shortBranch;
       gridPath.moveTo(points.get(0).x, points.get(0).y);
       for (int i = 1; i < points.size(); i++) gridPath.lineTo(points.get(i).x, points.get(i).y);
       gridPath.closePath();
