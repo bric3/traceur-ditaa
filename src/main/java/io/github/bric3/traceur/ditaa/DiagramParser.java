@@ -164,7 +164,6 @@ final class DiagramParser {
   }
 
   private void build(Drawing drawing) {
-    Drawing.Figure[][] arrowCells = new Drawing.Figure[height][width];
     Map<Integer, Character> inlineLabels = new HashMap<>(), lineTypes = new HashMap<>();
     for (int y = 0; y < height; y++)
       for (int x = 0; x + 2 < width; x++) {
@@ -293,6 +292,7 @@ final class DiagramParser {
       }
     orderRegions(regions, components);
     List<Region> shadowOrder = new ArrayList<>(regions);
+    Map<Drawing.Figure, Shape> textBackgrounds = new HashMap<>();
     regions.sort(Comparator.comparingDouble((Region r) -> r.area).reversed());
     for (int y = 0; y < height; y++) {
       Matcher matcher = MARKUP.matcher(new String(grid[y]));
@@ -315,6 +315,7 @@ final class DiagramParser {
               region.dashed,
               region.tag.equals("s") ? Drawing.Figure.Kind.STORAGE : Drawing.Figure.Kind.REGION,
               region.renderArea);
+      textBackgrounds.put(region.figure, region.textBackground);
     }
     regions.sort(Comparator.comparingDouble((Region r) -> r.renderArea).reversed());
     for (Region region : regions) drawing.figures.add(region.figure);
@@ -378,7 +379,6 @@ final class DiagramParser {
                   Drawing.Figure.Kind.ARROW,
                   cellWidth * cellHeight / 2.0);
           drawing.figures.add(arrowFigure);
-          arrowCells[y][x] = arrowFigure;
         } else if (c == '*') {
           if (links[y][x] != 0) {
             drawing.figures.add(
@@ -461,24 +461,17 @@ final class DiagramParser {
                 drawing.font,
                 alignment);
         Rectangle2D textBounds = positioned.bounds();
-        for (Region region : regions)
-          if (region.textBackground.intersects(textBounds)) {
-            Color bg = region.colour;
+        // Text follows paint order so a later fill can cover an open frame.
+        for (Drawing.Figure figure : drawing.figures)
+          if (figure.kind != Drawing.Figure.Kind.MARKER
+              && textBackgrounds.getOrDefault(figure, figure.path).intersects(textBounds)) {
+            Color bg = figure.fill;
             // The reference uses the brightest RGB channel for text foreground.
             positioned.colour =
-                Math.max(bg.getRed(), Math.max(bg.getGreen(), bg.getBlue())) < 200
+                bg != null && Math.max(bg.getRed(), Math.max(bg.getGreen(), bg.getBlue())) < 200
                     ? Color.WHITE
                     : Color.BLACK;
           }
-        if (intersectsArrow(textBounds, arrowCells)) positioned.colour = Color.WHITE;
-        // Open connectors select text foreground after filled shapes and arrowheads.
-        if (positioned.colour.equals(Color.WHITE))
-          for (Drawing.Figure figure : drawing.figures)
-            if (figure.kind == Drawing.Figure.Kind.CONNECTOR
-                && figure.path.intersects(textBounds)) {
-              positioned.colour = Color.BLACK;
-              break;
-            }
         drawing.labels.add(positioned);
       }
     }
@@ -700,17 +693,6 @@ final class DiagramParser {
         consumed[y + DY[direction]][x + DX[direction]] = true;
       }
     }
-  }
-
-  private boolean intersectsArrow(Rectangle2D bounds, Drawing.Figure[][] arrows) {
-    int left = Math.max(0, (int) Math.floor(bounds.getMinX() / cellWidth) - 2);
-    int right = Math.min(width - 1, (int) Math.floor(bounds.getMaxX() / cellWidth) - 2);
-    int top = Math.max(0, (int) Math.floor(bounds.getMinY() / cellHeight) - 2);
-    int bottom = Math.min(height - 1, (int) Math.floor(bounds.getMaxY() / cellHeight) - 2);
-    for (int y = top; y <= bottom; y++)
-      for (int x = left; x <= right; x++)
-        if (arrows[y][x] != null && arrows[y][x].path.intersects(bounds)) return true;
-    return false;
   }
 
   private int[][] textGroups() {

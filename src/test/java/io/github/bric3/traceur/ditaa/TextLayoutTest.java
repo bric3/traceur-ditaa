@@ -147,4 +147,19 @@ class TextLayoutTest {
       assertEquals(white ? Color.WHITE : Color.BLACK, drawing.labels.get(0).colour);
     }
   }
+
+  @Test
+  void filledRegionsSetTextContrastAfterLargerOpenFrames() throws IOException {
+    try (var input = getClass().getResourceAsStream("/compatibility/foreground-order.ditaa")) {
+      assertNotNull(input);
+      var drawing =
+          DiagramParser.parse(
+              new String(input.readAllBytes(), StandardCharsets.UTF_8), RenderOptions.DEFAULT);
+      assertEquals(2, drawing.labels.size());
+      for (var label : drawing.labels) {
+        assertEquals(
+            label.text.stripTrailing().equals("X") ? Color.WHITE : Color.BLACK, label.colour);
+      }
+    }
+  }
 }
