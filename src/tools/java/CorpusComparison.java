@@ -14,10 +14,7 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -25,66 +22,31 @@ import javax.xml.parsers.DocumentBuilderFactory;
  * Separate-process reference renderer comparisons; every failure is recorded and fails the task.
  */
 public final class CorpusComparison {
-  public static void main(String[] args) throws Exception {
-    Path corpus = null, pngReferenceJar = null, svgReferenceJar = null, report = null;
-    String rasterizer = "rsvg-convert";
-    CorpusShard shard = null;
-    for (int i = 0; i < args.length; i += 2) {
-      switch (args[i]) {
-        case "--shard":
-          shard = CorpusShard.parse(args[i + 1]);
-          break;
-        case "--corpus":
-          corpus = Path.of(args[i + 1]);
-          break;
-        case "--png-reference":
-          pngReferenceJar = Path.of(args[i + 1]).toAbsolutePath();
-          break;
-        case "--svg-reference":
-          svgReferenceJar = Path.of(args[i + 1]).toAbsolutePath();
-          break;
-        case "--report":
-          report = Path.of(args[i + 1]).toAbsolutePath();
-          break;
-        case "--rasterizer":
-          rasterizer = args[i + 1];
-          break;
-        default:
-          throw new IllegalArgumentException("Unknown argument: " + args[i]);
-      }
-    }
-    if (corpus == null || pngReferenceJar == null || svgReferenceJar == null || report == null) {
-      throw new IllegalArgumentException(
-          "Supply --corpus INPUT_DIRECTORY --png-reference PLANTUML_JAR --svg-reference DITAA_JAR"
-          + " (and optionally --rasterizer RSVG_CONVERT)"
-      );
-    }
-    if (!Files.isRegularFile(pngReferenceJar) || !Files.isRegularFile(svgReferenceJar)) {
-      throw new IllegalArgumentException("Missing reference renderer JAR");
-    }
-    List<Path> inputs;
-    try (var files = Files.walk(corpus)) {
-      inputs = files
-        .filter(Files::isRegularFile)
-        .filter(p -> p.toString().endsWith(".ditaa"))
-        .sorted()
-        .collect(Collectors.toList());
-    }
-    if (inputs.isEmpty()) {
-      throw new IllegalArgumentException("No .ditaa inputs found");
-    }
-    if (shard != null) {
-      List<Path> selected = new ArrayList<>();
-      for (Path input : inputs) {
-        if (shard.includes(sha256(Files.readAllBytes(input)))) {
-          selected.add(input);
-        }
-      }
-      inputs = selected;
-      if (inputs.isEmpty()) {
-        throw new IllegalArgumentException("No inputs in selected shard");
-      }
-    }
+  private final Path pngReferenceJar, svgReferenceJar, report;
+  private final String rasterizer, rendererClasspath;
+  private final StringBuilder rows = new StringBuilder(
+      "input\tsha256\tvariant\tformat\tstatus\tdifferentPixels\treferenceDimensions"
+      + "\tactualDimensions\tdetail\n"
+  );
+  private final StringBuilder html = new StringBuilder(
+      "<!doctype html><meta charset=\"utf-8\"><title>Corpus comparison</title>"
+      + "<style>body{font-family:sans-serif}img{max-width:45vw}section{border-top:1px solid #ccc;padding:1em}</style>"
+      + "<h1>Corpus comparison</h1>"
+  );
+  private int passed, failed;
+
+  CorpusComparison(
+      Path pngReferenceJar,
+      Path svgReferenceJar,
+      Path report,
+      String rasterizer,
+      String rendererClasspath
+  ) throws Exception {
+    this.pngReferenceJar = pngReferenceJar;
+    this.svgReferenceJar = svgReferenceJar;
+    this.report = report;
+    this.rasterizer = rasterizer;
+    this.rendererClasspath = rendererClasspath;
     Files.createDirectories(report);
     Files.writeString(
         report.resolve("environment.txt"),
@@ -120,89 +82,48 @@ public final class CorpusComparison {
       .equals("OK")) {
       throw new IllegalArgumentException("SVG rasterizer unavailable");
     }
-    List<Callable<Result>> cases = new ArrayList<>();
-    String environment = Files.readString(report.resolve("environment.txt"))
-        + Files.readString(report.resolve("rasterizer.txt"));
-    for (int i = 0; i < inputs.size(); i++) {
-      String inputId = sha256(Files.readAllBytes(inputs.get(i)));
-      for (int variant = 0; variant < 4; variant++) {
-        for (OutputFormat format : OutputFormat.values()) {
-          Path input = inputs.get(i), pngReference = pngReferenceJar, svgReference = svgReferenceJar;
-          Path dir = report.resolve(String.format(
-              Locale.ROOT,
-              "%s-%d-%s",
-              inputId,
-              variant,
-              format.name().toLowerCase(Locale.ROOT)
-          ));
-          String svgRenderer = rasterizer;
-          int option = variant;
-          cases.add(() -> compareCase(
-              input,
-              option,
-              format,
-              pngReference,
-              svgReference,
-              svgRenderer,
-              dir,
-              environment
-          ));
-        }
-      }
-    }
-    StringBuilder rows = new StringBuilder(
-        "input\tsha256\tvariant\tformat\tstatus\tdifferentPixels\treferenceDimensions"
-        + "\tactualDimensions\tdetail\n"
+    writeReport();
+  }
+
+  void compare(Path input, int variant, OutputFormat format) throws Exception {
+    String id = sha256(Files.readAllBytes(input))
+        + "-"
+        + variant
+        + "-"
+        + format.name().toLowerCase(Locale.ROOT);
+    Result result = compareCase(
+        input,
+        variant,
+        format,
+        pngReferenceJar,
+        svgReferenceJar,
+        rasterizer,
+        report.resolve(id),
+        rendererClasspath
     );
-    StringBuilder html = new StringBuilder(
-        "<!doctype html><meta charset=\"utf-8\"><title>traceur-ditaa"
-        + " comparison</title><style>body{font-family:sans-serif}img{max-width:45vw}section{border-top:1px"
-        + " solid #ccc;padding:1em}</style><h1>Corpus comparison</h1>"
+    record(result);
+    if (!result.passed) {
+      throw new AssertionError(result.row + "Report: " + report.resolve(id));
+    }
+  }
+
+  private synchronized void record(Result result) throws IOException {
+    rows.append(result.row);
+    html.append(result.html);
+    if (result.passed) {
+      passed++;
+    } else {
+      failed++;
+    }
+    writeReport();
+  }
+
+  private void writeReport() throws IOException {
+    Files.writeString(report.resolve("results.tsv"), rows);
+    Files.writeString(
+        report.resolve("index.html"),
+        html + "<p>" + passed + " passed; " + failed + " failed</p>"
     );
-    var executor = Executors.newFixedThreadPool(4);
-    int passed = 0, failed = 0, completed = 0;
-    try {
-      List<java.util.concurrent.Future<Result>> results = new ArrayList<>();
-      for (var job : cases) {
-        results.add(executor.submit(job));
-      }
-      for (var future : results) {
-        Result result = future.get();
-        rows.append(result.row);
-        html.append(result.html);
-        if (result.passed) {
-          passed++;
-        } else {
-          failed++;
-        }
-        completed++;
-        Files.writeString(report.resolve("results.tsv"), rows);
-        Files.writeString(
-            report.resolve("index.html"),
-            html
-            + "<p>"
-            + passed
-            + " passed; "
-            + failed
-            + " failed; "
-            + completed
-            + "/"
-            + cases.size()
-            + " complete</p>"
-        );
-        if (completed % 40 == 0) {
-          System.out.println(
-              completed + "/" + cases.size() + " cases; " + passed + " passed, " + failed + " failed"
-          );
-        }
-      }
-    } finally {
-      executor.shutdownNow();
-    }
-    System.out.println("Report: " + report.resolve("index.html"));
-    if (failed > 0) {
-      throw new AssertionError(failed + " comparison cases failed; " + passed + " passed");
-    }
   }
 
   private static Result compareCase(
@@ -213,7 +134,7 @@ public final class CorpusComparison {
       Path svgReferenceJar,
       String rasterizer,
       Path dir,
-      String environment
+      String rendererClasspath
   ) throws Exception {
     Files.createDirectories(dir);
     String status = "ERROR", detail = "", rd = "", ad = "", hash = "";
@@ -225,24 +146,13 @@ public final class CorpusComparison {
       Files.writeString(raw, text);
       RenderOptions options = new RenderOptions(variant == 3 ? .7 : 1, variant != 1, variant != 2);
       Path reference = dir.resolve("reference.png"), actual = dir.resolve("actual.png");
-      Path marker = dir.resolve("reference-key.txt");
-      String entryPoint = format == OutputFormat.PNG ? "raw-input-api-v1" : "";
-      String key =
-          sha256((environment + hash + variant + format + entryPoint)
-        .getBytes(StandardCharsets.UTF_8)
-      );
-      boolean cached = Files.isRegularFile(marker)
-          && Files.isRegularFile(reference)
-          && Files.readString(marker).equals(key);
-      if (cached) {
-        status = "OK";
-      } else if (format == OutputFormat.PNG) {
+      if (format == OutputFormat.PNG) {
         status = run(
             List.of(
                 javaCommand(),
                 "-Djava.awt.headless=true",
                 "-cp",
-                System.getProperty("java.class.path") + java.io.File.pathSeparator + pngReferenceJar,
+                rendererClasspath + java.io.File.pathSeparator + pngReferenceJar,
                 PngReferenceProcess.class.getName(),
                 raw.toString(),
                 reference.toString(),
@@ -293,9 +203,6 @@ public final class CorpusComparison {
       if (!status.equals("OK")) {
         status = "REFERENCE_" + status;
       } else {
-        if (!cached) {
-          Files.writeString(marker, key);
-        }
         if (format == OutputFormat.PNG) {
           try (var output = Files.newOutputStream(actual)) {
             new DitaaRenderer().render(text, options, format, output);

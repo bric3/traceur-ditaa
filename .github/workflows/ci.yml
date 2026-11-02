@@ -119,7 +119,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Require successful build and every corpus shard
+      - name: Require successful build and every corpus slot
         if: needs.build.result != 'success' || needs.corpus.result != 'success'
         run: exit 1
 

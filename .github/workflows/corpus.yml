@@ -13,10 +13,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3]
+        slot: [0, 1, 2, 3]
+    env:
+      TEST_SLOT: ${{ strategy.job-index }}/${{ strategy.job-total }}
+      CORPUS_REPORT: build/comparison/${{ strategy.job-index }}-${{ strategy.job-total }}/all
     steps:
       - name: Checkout tested revision
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Download tested renderer and tools
         uses: actions/download-artifact@v7
@@ -33,16 +38,20 @@ jobs:
       - name: Set up JBang
         uses: jbangdev/setup-jbang@v0.1.1
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Select test slot
+        run: ./gradlew selectTestSlot -PtestSlot="$TEST_SLOT"
+
       - name: Install SVG rasteriser
         run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends librsvg2-bin
 
-      - name: Fetch pinned shard and reference binaries
-        env:
-          CORPUS_SHARD: ${{ matrix.shard }}/4
+      - name: Fetch selected inputs and reference binaries
         run: |
-          jbang tools/FetchPinnedCorpus.java corpus/manifest.tsv "$RUNNER_TEMP/corpus" --shard "$CORPUS_SHARD"
+          jbang tools/FetchPinnedCorpus.java build/test-slots/manifest.tsv "$RUNNER_TEMP/corpus"
           curl --fail --location --retry 3 --output "$RUNNER_TEMP/plantuml.jar" https://repo.maven.apache.org/maven2/net/sourceforge/plantuml/plantuml/1.2026.8/plantuml-1.2026.8.jar
           curl --fail --location --retry 3 --output "$RUNNER_TEMP/ditaa.jar" https://github.com/stathissideris/ditaa/releases/download/v0.11.0/ditaa-0.11.0-standalone.jar
           sha256sum --check <<EOF
@@ -50,25 +59,32 @@ jobs:
           9418aa63ff6d89c5d2318396f59836e120e75bea7a5930c4d34aa10fe7a196a9  $RUNNER_TEMP/ditaa.jar
           EOF
 
-      - name: Require exact compatibility for this shard
-        env:
-          CORPUS_SHARD: ${{ matrix.shard }}/4
+      - name: Run corpus test suite
         run: >-
-          java -Djava.awt.headless=true
-          -cp build/classes/java/main:build/classes/java/tools CorpusComparison
-          --corpus "$RUNNER_TEMP/corpus/inputs"
-          --png-reference "$RUNNER_TEMP/plantuml.jar"
-          --svg-reference "$RUNNER_TEMP/ditaa.jar"
-          --shard "$CORPUS_SHARD"
-          --report build/comparison
+          ./gradlew corpusTest -x compileJava -x compileToolsJava
+          -PtestSlot="$TEST_SLOT"
+          -Pcorpus="$RUNNER_TEMP/corpus/inputs"
+          -PpngReference="$RUNNER_TEMP/plantuml.jar"
+          -PsvgReference="$RUNNER_TEMP/ditaa.jar"
 
-      - name: Upload shard results
+      - name: Upload slot results
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: compatibility-results-${{ matrix.shard }}
+          name: compatibility-results-${{ matrix.slot }}
           path: |
-            build/comparison/results.tsv
-            build/comparison/environment.txt
+            ${{ env.CORPUS_REPORT }}/results.tsv
+            ${{ env.CORPUS_REPORT }}/environment.txt
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload corpus test reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: corpus-test-reports-${{ matrix.slot }}
+          path: |
+            build/test-results/corpusTest/
+            build/reports/tests/corpusTest/
           if-no-files-found: error
           retention-days: 7

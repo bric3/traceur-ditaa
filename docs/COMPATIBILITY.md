@@ -72,7 +72,7 @@ the external cache with Java 25 and JBang:
 
 ```sh
 jbang tools/FetchPinnedCorpus.java corpus/manifest.tsv /tmp/traceur-ditaa-corpus
-./gradlew compareCorpus \
+./gradlew corpusTest \
   -Pcorpus=/tmp/traceur-ditaa-corpus/inputs \
   -PpngReference=/path/to/plantuml-1.2026.8.jar \
   -PsvgReference=/path/to/ditaa-0.11.0-standalone.jar
@@ -89,17 +89,38 @@ for repeatable pixel comparisons.
 Each input runs in both formats with defaults, shadows disabled, separation
 disabled, and scale 0.7. Reference processes have a 15-second timeout; four cases
 run concurrently. Every mismatch or error fails the task. Results, logs, overlays,
-and difference images appear in `build/comparison/index.html`.
+and difference images appear under `build/comparison/<slot>/<input>/`; a complete
+run uses `build/comparison/0-1/all/index.html`.
 
-Successful references are cached by input, options, format, reference JAR hashes, JDK,
-and rasterizer. Delete `build/comparison` to refresh them after changing fonts.
 CI and releases require all 5,920 comparisons, partitioned into four deterministic
-SHA-256 shards. To run one shard locally, add `-PcorpusShard=0/4` to `compareCorpus`.
-The fetcher can also download one shard:
+SHA-256 slots. Slot indices start at zero: `-PtestSlot=1/4` runs the second of four
+slots. The total is dynamic; omitting the property runs every input. Selection is
+stable across manifest ordering, and every input belongs to exactly one slot.
+The `traceur.test-slots` build-logic plugin writes the selected manifest, which
+also limits fetching:
 
 ```sh
-jbang tools/FetchPinnedCorpus.java corpus/manifest.tsv /tmp/traceur-ditaa-corpus --shard 0/4
+./gradlew selectTestSlot -PtestSlot=1/4
+jbang tools/FetchPinnedCorpus.java build/test-slots/manifest.tsv /tmp/traceur-ditaa-corpus
+./gradlew corpusTest -PtestSlot=1/4 \
+  -Pcorpus=/tmp/traceur-ditaa-corpus/inputs \
+  -PpngReference=/path/to/plantuml-1.2026.8.jar \
+  -PsvgReference=/path/to/ditaa-0.11.0-standalone.jar
 ```
+
+`corpusTest` is a JVM test suite in this project, using JUnit 5 dynamic tests.
+Each input, variant and format has a separate result in Gradle's HTML and XML
+reports under `build/reports/tests/corpusTest` and `build/test-results/corpusTest`.
+It runs explicitly in the CI matrix; `build` and unit-test coverage do not run it.
+Use `-PtestInput=<sha256>` with a manifest ID to rerun one diagram's eight cases;
+if combined with `testSlot`, both selections apply. An empty slot reports a skipped test.
+Gradle's `--tests` selects the test class or factory, rather than individual
+dynamic comparisons. Gradle caches the suite results and comparison reports.
+The cache inputs include the selected manifest, corpus files, reference JARs,
+renderer classes, JDK release, OS, runner image, font files and rasteriser version.
+CI's `setup-gradle` action restores the local build cache for each matrix slot;
+`main` builds save entries that subsequent builds and pull requests can reuse.
+Use `--rerun-tasks` to force execution.
 
 ## Extending the corpus
 

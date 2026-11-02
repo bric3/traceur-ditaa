@@ -45,6 +45,7 @@ configure<YumiLicenserGradleExtension> {
     excludeSourceSet("main")
     excludeSourceSet("test")
     excludeSourceSet("tools")
+    excludeSourceSet("corpusTest")
     rule(HeaderRule.parse("MPL-2.0", listOf("SPDX-License-Identifier: MPL-2.0")))
     headerCommentManager.register(SpdxHeaderComment(), "java", "kt", "kts")
     registerTasks("owned", ownedSources)

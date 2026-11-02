@@ -1,7 +1,6 @@
 //usr/bin/env jbang "$0" "$@" ; exit $?
 //JAVA 25
 //SOURCES FetchCorpus.java
-//SOURCES ../src/tools/java/CorpusShard.java
 // SPDX-License-Identifier: MPL-2.0
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -21,13 +20,12 @@ import java.util.Set;
  */
 class FetchPinnedCorpus {
   public static void main(String[] args) throws Exception {
-    if (args.length != 2 && (args.length != 4 || !args[2].equals("--shard"))) {
+    if (args.length != 2) {
       throw new IllegalArgumentException(
-          "Usage: jbang tools/FetchPinnedCorpus.java MANIFEST EXTERNAL_CACHE [--shard INDEX/COUNT]"
+          "Usage: jbang tools/FetchPinnedCorpus.java MANIFEST EXTERNAL_CACHE"
       );
     }
     Path inputs = Files.createDirectories(Path.of(args[1]).resolve("inputs"));
-    CorpusShard shard = args.length == 4 ? CorpusShard.parse(args[3]) : null;
     var http = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
     Set<String> seen = new HashSet<>();
     int failures = 0;
@@ -45,9 +43,6 @@ class FetchPinnedCorpus {
         throw new IllegalArgumentException("Invalid provenance row");
       }
       String hash = fields[0], repo = fields[1], revision = fields[2], path = fields[3];
-      if (shard != null && !shard.includes(hash)) {
-        continue;
-      }
       if (!seen.add(hash)) {
         continue;
       }

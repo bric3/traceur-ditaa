@@ -4,6 +4,7 @@ plugins {
     `maven-publish`
     jacoco
     id("traceur.quality")
+    id("traceur.test-slots")
 }
 
 group = "io.github.bric3.traceur"
@@ -37,7 +38,7 @@ jacoco {
 }
 
 tasks.jacocoTestReport {
-    dependsOn(tasks.withType<Test>())
+    dependsOn(tasks.test, tasks.named<Test>("testJava11"))
     executionData(layout.buildDirectory.file("jacoco/test.exec"), layout.buildDirectory.file("jacoco/testJava11.exec"))
     reports {
         xml.required = true
@@ -46,7 +47,7 @@ tasks.jacocoTestReport {
 }
 
 tasks.jacocoTestCoverageVerification {
-    dependsOn(tasks.withType<Test>())
+    dependsOn(tasks.test, tasks.named<Test>("testJava11"))
     executionData(layout.buildDirectory.file("jacoco/test.exec"), layout.buildDirectory.file("jacoco/testJava11.exec"))
     violationRules {
         rule {
@@ -87,17 +88,67 @@ sourceSets.test {
     runtimeClasspath += tools.output
 }
 
-tasks.register<JavaExec>("compareCorpus") {
-    description = "Compares every corpus input with an isolated PlantUML binary."
-    classpath = tools.runtimeClasspath
-    mainClass = "CorpusComparison"
-    systemProperty("java.awt.headless", "true")
-    providers.gradleProperty("corpus").orNull?.let { args("--corpus", it) }
-    providers.gradleProperty("pngReference").orNull?.let { args("--png-reference", it) }
-    providers.gradleProperty("svgReference").orNull?.let { args("--svg-reference", it) }
-    providers.gradleProperty("corpusShard").orNull?.let { args("--shard", it) }
-    args("--rasterizer", providers.gradleProperty("rasterizer").getOrElse("rsvg-convert"))
-    args("--report", layout.buildDirectory.dir("comparison").get().asFile.absolutePath)
+val selectTestSlot = tasks.named<SelectTestSlot>("selectTestSlot") {
+    manifest = layout.projectDirectory.file("corpus/manifest.tsv")
+}
+
+val corpusArguments = objects.newInstance<CorpusTestArguments>().apply {
+    corpus = layout.projectDirectory.dir(providers.gradleProperty("corpus").orElse("build/corpus/inputs"))
+    manifest = selectTestSlot.flatMap { it.selectedManifest }
+    pngReference = layout.projectDirectory.file(providers.gradleProperty("pngReference").orElse("build/references/plantuml.jar"))
+    svgReference = layout.projectDirectory.file(providers.gradleProperty("svgReference").orElse("build/references/ditaa.jar"))
+    rasterizer = providers.gradleProperty("rasterizer").orElse("rsvg-convert")
+    rendererClasspath.from(tools.runtimeClasspath)
+    report = layout.buildDirectory.dir(providers.gradleProperty("testSlot").orElse("0/1")
+        .zip(providers.gradleProperty("testInput").orElse("all")) { slot, input ->
+            "comparison/${slot.replace('/', '-')}/$input"
+        })
+}
+
+val rasterizerVersion = providers.of(RasterizerVersionSource::class) {
+    parameters.executable = corpusArguments.rasterizer
+}
+val renderingFonts = files(
+    fileTree("/usr/share/fonts"), fileTree("/usr/local/share/fonts"), fileTree("/etc/fonts"),
+    fileTree("/System/Library/Fonts"), fileTree("/Library/Fonts"),
+    fileTree(providers.systemProperty("user.home").map { "$it/Library/Fonts" }),
+    fileTree(providers.systemProperty("user.home").map { "$it/.fonts" }),
+    fileTree(providers.environmentVariable("XDG_DATA_HOME")
+        .orElse(providers.systemProperty("user.home").map { "$it/.local/share" }).map { "$it/fonts" })
+)
+
+testing {
+    suites {
+        register<JvmTestSuite>("corpusTest") {
+            useJUnitJupiter(libs.versions.junit)
+            dependencies {
+                implementation(project())
+                implementation(tools.output)
+            }
+            targets.all {
+                testTask.configure {
+                    description = "Compares the selected corpus inputs with the reference renderers."
+                    jvmArgumentProviders.add(corpusArguments)
+                    outputs.dir(corpusArguments.report).withPropertyName("comparisonReport")
+                    systemProperty("junit.jupiter.execution.parallel.enabled", "true")
+                    systemProperty("junit.jupiter.execution.parallel.mode.default", "concurrent")
+                    systemProperty("junit.jupiter.execution.parallel.config.strategy", "fixed")
+                    systemProperty("junit.jupiter.execution.parallel.config.fixed.parallelism", "4")
+                    systemProperty("junit.jupiter.execution.parallel.config.fixed.max-pool-size", "4")
+                    inputs.property("testSlot", providers.gradleProperty("testSlot").orElse("0/1"))
+                    inputs.property("renderingOs", providers.systemProperty("os.name"))
+                    inputs.property("renderingOsVersion", providers.systemProperty("os.version"))
+                    inputs.property("renderingArchitecture", providers.systemProperty("os.arch"))
+                    inputs.property("runnerImage", providers.environmentVariable("ImageVersion").orElse(""))
+                    inputs.property("rasterizerVersion", rasterizerVersion)
+                    inputs.files(renderingFonts).withPropertyName("renderingFonts")
+                        .withPathSensitivity(PathSensitivity.NONE)
+                    inputs.file(javaLauncher.map { it.metadata.installationPath.file("release") })
+                        .withPropertyName("renderingJdk").withPathSensitivity(PathSensitivity.NONE)
+                }
+            }
+        }
+    }
 }
 
 tasks.register<JavaExec>("benchmarkColdStart") {
