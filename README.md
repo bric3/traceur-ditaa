@@ -9,7 +9,7 @@ PNG and vector SVG. It targets Java 11 and has no third-party runtime dependenci
 Maven coordinates: `io.github.bric3.traceur:traceur-ditaa`. Publication is pending.
 
 Complete rendering compatibility is required before release. The current renderer
-matches 1,704 of 1,920 corpus comparisons exactly. See the
+matches 1,734 of 1,920 corpus comparisons exactly. See the
 [validation snapshot](docs/VALIDATION.md) for the measured gaps.
 
 ## Usage

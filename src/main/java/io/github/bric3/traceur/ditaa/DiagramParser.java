@@ -838,8 +838,8 @@ final class DiagramParser {
       }
     }
     boolean clockwise =
-        boundaryBucket(p.get((seed + 1) % p.size()), capacity)
-            < boundaryBucket(p.get((seed + p.size() - 1) % p.size()), capacity);
+        boundaryBucket(p.get((seed + 1) % p.size()), 16)
+            < boundaryBucket(p.get((seed + p.size() - 1) % p.size()), 16);
     if (clockwise) Collections.reverse(corners.subList(1, corners.size()));
     int first = 0, distance = p.size();
     for (int i = 0; i < corners.size(); i++) {
