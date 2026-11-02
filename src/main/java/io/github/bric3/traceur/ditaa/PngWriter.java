@@ -34,7 +34,7 @@ final class PngWriter {
           if (figure.shadow) {
             Path2D.Float shifted = new Path2D.Float(figure.path);
             // The reference displaces shadows by this fraction of a character cell.
-            double offset = drawing.cellWidth / 3.333;
+            float offset = (float) (drawing.cellWidth / 3.333);
             shifted.transform(AffineTransform.getTranslateInstance(offset, offset));
             shadow.fill(shifted);
           }

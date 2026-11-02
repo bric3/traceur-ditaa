@@ -7,8 +7,32 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.tabletest.junit.TableTest;
 
 class TextSyntaxTest {
+  @Test
+  void trailingColumnSpacesDoNotBecomeLabelText() {
+    assertEquals(List.of("AB", "DEF"), labels("AB \nDEF"));
+  }
+
+  @Test
+  void aSingleMarkerAboveADiagonalLeavesTheSlashAsText() {
+    assertEquals(List.of("/ "), labels("*\n/"));
+  }
+
+  @TableTest({
+    "prefix | text     ",
+    "'#'    | '#+LABEL'",
+    "'a'    | 'a+LABEL'",
+    "''     | '+LABEL' "
+  })
+  void aPlusBesideADiagonalRemainsPartOfAWord(String prefix, String text) {
+    String indent = " ".repeat(prefix.length());
+    assertTrue(labels(indent + "/---\\\n" + indent + "|   |\n" + indent + "\\---/\n" + text)
+      .contains(text)
+    );
+  }
+
   private static List<String> labels(String text) {
     return DiagramParser.parse(text, RenderOptions.DEFAULT).labels
       .stream()
@@ -83,7 +107,7 @@ class TextSyntaxTest {
     assertEquals(30, drawing.labels.get(1).x);
     assertEquals(30, drawing.labels.get(2).x);
     assertTrue(drawing.figures.isEmpty());
-    assertEquals(List.of("fooo bar", "o ", "bar", "o "), labels("fooo bar\no  bar\no"));
+    assertEquals(List.of("fooo bar", "o  bar", "o "), labels("fooo bar\no  bar\no"));
     assertEquals(List.of("•élan"), labels(marker + " élan"));
     assertEquals(List.of("•١23"), labels(marker + " ١23"));
   }

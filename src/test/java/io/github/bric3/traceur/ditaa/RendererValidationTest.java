@@ -17,15 +17,17 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.converter.ConvertWith;
+import org.tabletest.junit.TableTest;
 
 class RendererValidationTest {
   private final DitaaRenderer renderer = new DitaaRenderer();
 
   @Test
-  void aBlankGridAtTheCellLimitRendersWithoutLabelsOrPaths() throws Exception {
+  void aGridAtTheCellLimitRendersWithoutLabelsOrPaths() throws Exception {
     var output = new ByteArrayOutputStream();
     ImageSize size = renderer.render(
-        (" ".repeat(500) + "\n").repeat(500),
+        (" ".repeat(500) + "\n").repeat(499) + "cRED" + " ".repeat(496),
         new RenderOptions(.2, false, true),
         OutputFormat.SVG,
         output
@@ -35,6 +37,27 @@ class RendererValidationTest {
     var document = SvgEncodingTest.parse(output.toByteArray());
     assertEquals(0, document.getElementsByTagNameNS("*", "path").getLength());
     assertEquals(0, document.getElementsByTagNameNS("*", "text").getLength());
+  }
+
+  @TableTest({
+    "text                                 | width | height",
+    "'+--+\\n|  |\\n+--+\\n          \\n' | 80    | 98    ",
+    "'   \\n   \\n'                       | 70    | 70    ",
+    "'x\\n          \\n'                  | 50    | 70    ",
+    "'x          \\n'                     | 150   | 70    ",
+    "'\\n  x\\n  \\n'                     | 70    | 84    "
+  })
+  void trailingBlankRowsDoNotContributeToDimensions(
+      @ConvertWith(DiagramConverter.class) String text,
+      int width,
+      int height
+  ) throws Exception {
+    for (var format : OutputFormat.values()) {
+      var output = new ByteArrayOutputStream();
+      var size = renderer.render(text, RenderOptions.DEFAULT, format, output);
+      assertEquals(width, size.width());
+      assertEquals(height, size.height());
+    }
   }
 
   @Test
@@ -87,14 +110,14 @@ class RendererValidationTest {
         Arguments.of("input length", "x".repeat(1_000_001), "Diagram exceeds input size limit"),
         Arguments.of(
             "grid cells",
-            (" ".repeat(501) + "\n").repeat(500),
+            (" ".repeat(501) + "\n").repeat(499) + "cRED" + " ".repeat(497),
             "Diagram exceeds cell limit"
         ),
         Arguments.of("image width", "x".repeat(4000), "Rendered dimensions exceed image limits"),
         Arguments.of("image height", "x\n".repeat(2400), "Rendered dimensions exceed image limits"),
         Arguments.of(
             "image area",
-            (" ".repeat(1000) + "\n").repeat(200),
+            (" ".repeat(1000) + "\n").repeat(199) + "cRED" + " ".repeat(996),
             "Rendered dimensions exceed image limits"
         )
     );

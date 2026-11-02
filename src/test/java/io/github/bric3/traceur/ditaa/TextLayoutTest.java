@@ -14,6 +14,19 @@ import org.w3c.dom.Element;
 
 class TextLayoutTest {
   @TableTest({
+    "text",
+    "W   ",
+    "界  "
+  })
+  void narrowLabelsKeepTheMinimumFontSize(String text) {
+    var label =
+        new Drawing.Label(text, 20, 35, Color.BLACK, 1, Drawing.FONT, Drawing.TextAlignment.LEFT);
+    assertEquals(text, label.text);
+    assertEquals(1, label.font.getSize2D());
+    assertEquals(20, label.x);
+  }
+
+  @TableTest({
     "height | macSize | linuxSize",
     "2      | 1       | 1        ",
     "4      | 3       | 3        ",
@@ -23,7 +36,8 @@ class TextLayoutTest {
     "13     | 13      | 14       ",
     "14     | 14.5    | 15       ",
     "28     | 29      | 30       ",
-    "42     | 43      | 45       "
+    "42     | 43      | 45       ",
+    "58     | 60      | 62.5     "
   })
   void fontSizesMatchTheReferenceCellHeights(int height, float macSize, float linuxSize) {
     var drawing = new Drawing(100, 100, new RenderOptions((height + .25) / 14, false, true));

@@ -28,6 +28,7 @@ final class DiagramParser {
   private static final byte SOLID = 1;
   private static final byte DASHED = 2;
   private static final byte HIDDEN = 3;
+  private static final byte COMPOSITE = 4;
   private static final Pattern MARKUP =
       Pattern.compile("c([0-9A-F]{3}|RED|BLU|GRE|PNK|BLK|YEL)|\\{(d|s|io|o|mo|c|tr)\\}");
   private static final int[] DX = {1, 0, -1, 0};
@@ -39,15 +40,20 @@ final class DiagramParser {
   private final byte[][] connectorStyles;
   private final boolean[][] consumed;
   private final Set<Long> repeatedConnectorEdges = new HashSet<>();
+  private Set<Long> openCompartmentEdges = Set.of();
+  private final Set<Long> sharedOpenEdges = new HashSet<>();
   private final List<Set<Long>> separateContours = new ArrayList<>();
   private final Set<Long> exteriorBridgeEdges = new HashSet<>();
   private final Map<Long, Boolean> interiorBridges = new HashMap<>();
   private final Set<Long> mixedCycleEdges = new HashSet<>();
   private final List<Drawing.Figure> interiorFigures = new ArrayList<>();
   private final List<Drawing.Figure> directFigures = new ArrayList<>();
+  private final Set<Drawing.Figure> compositeConnectors = new HashSet<>();
   private final RenderOptions options;
   private final int cellWidth;
   private final int cellHeight;
+  private int[][] regionComponents;
+  private final Set<Integer> boundedComponents = new HashSet<>();
 
   private DiagramParser(List<String> lines, int width, RenderOptions options) {
     this.width = width;
@@ -94,11 +100,13 @@ final class DiagramParser {
           }
         }
       }
-      width = Math.max(width, expanded.length());
       lines.add(expanded.toString());
     }
-    while (lines.size() > 1 && lines.get(lines.size() - 1).isEmpty()) {
+    while (lines.size() > 1 && lines.get(lines.size() - 1).trim().isEmpty()) {
       lines.remove(lines.size() - 1);
+    }
+    for (String line : lines) {
+      width = Math.max(width, line.length());
     }
     if ((long) Math.max(width, 1) * lines.size() > MAX_CELLS) {
       throw new IllegalArgumentException("Diagram exceeds cell limit");
@@ -137,6 +145,11 @@ final class DiagramParser {
     }
     int first = c == '/' ? 3 : 6;
     int second = c == '/' ? 12 : 9;
+    if (Integer.bitCount(lines) == 3
+        && "|:*".indexOf(at(x, y - 1)) >= 0
+        && "|:*".indexOf(at(x, y + 1)) >= 0) {
+      return 0;
+    }
     if ((neighbours & first) == first
         && ((neighbours & second) != second
         || Integer.bitCount(lines & first) >= Integer.bitCount(lines & second))) {
@@ -159,8 +172,10 @@ final class DiagramParser {
       case '+':
       case '/':
       case '\\':
-      case '*':
         return 15;
+      case '*':
+        return ("-=".indexOf(at(x - 1, y)) >= 0 || "-=".indexOf(at(x + 1, y)) >= 0 ? 5 : 0)
+            | ("|:".indexOf(at(x, y - 1)) >= 0 || "|:".indexOf(at(x, y + 1)) >= 0 ? 10 : 0);
       case '>':
       case '<':
       case '^':
@@ -219,6 +234,13 @@ final class DiagramParser {
     lineTypes.forEach((cell, type) -> grid[cell / width][cell % width] = type);
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
+        char c = at(x, y);
+        if ((c == '/' || c == '\\')
+            && (at(x, y - 1) == '*' && at(x, y + 1) == '*'
+            || at(x - 1, y) == '*' && at(x + 1, y) == '*')) {
+          // A diagonal between point markers also remains visible as text.
+          inlineLabels.put(y * width + x, c);
+        }
         for (int d = 0; d < 4; d++) {
           if ((directions(x, y) & (1 << d)) != 0
               && (directions(x + DX[d], y + DY[d]) & (1 << ((d + 2) % 4))) != 0) {
@@ -234,9 +256,11 @@ final class DiagramParser {
     List<Region> regions = new ArrayList<>();
     Map<Integer, Region> enclosing = new HashMap<>();
     Set<Integer> trimmedExteriors = new HashSet<>(), openedExteriors = new HashSet<>();
+    Set<Integer> splitExteriors = new HashSet<>();
     Map<Integer, Set<Long>> innerBridges = new HashMap<>(), outerBridges = new HashMap<>(), exteriorEdges =
         new HashMap<>();
     int[][] components = components(regionLinks);
+    regionComponents = components;
     Set<Long> boundary = new HashSet<>();
     Set<Long> sharedEdges = new HashSet<>();
     for (int y = 0; y < height; y++) {
@@ -313,10 +337,13 @@ final class DiagramParser {
               char start = at(a % width, a / width), end = at(b % width, b / width);
               dashed |= start == '=' || start == ':' || end == '=' || end == ':';
             }
+            boolean splitBoundary = false;
             if (area > 0 && !bridges.isEmpty()) {
               List<Point2D.Double> outline = trimBoundary(points, faceEdges);
               if (outline != null) {
                 points = outline;
+              } else {
+                splitBoundary = true;
               }
             }
             if (area < 0 && !bridges.isEmpty()) {
@@ -326,6 +353,7 @@ final class DiagramParser {
               }
               points = trimBoundary(points, faceEdges);
               if (points == null) {
+                splitExteriors.add(components[y][x]);
                 continue;
               }
               trimmedExteriors.add(components[y][x]);
@@ -340,9 +368,11 @@ final class DiagramParser {
                 components[y][x],
                 faceEdges,
                 !bridges.isEmpty(),
-                shortBranch
+                shortBranch,
+                splitBoundary
             );
             if (area > 0) {
+              boundedComponents.add(region.component);
               regions.add(region);
             } else {
               enclosing.put(region.component, region);
@@ -378,11 +408,136 @@ final class DiagramParser {
     // Each opened side still paints an outline when the opposite side stays closed.
     Set<Long> supplementalConnectorEdges = new HashSet<>();
     Map<Integer, Integer> compartmentCounts = new HashMap<>();
+    Map<Integer, Integer> closedCompartments = new HashMap<>();
+    Set<Integer> interiorComponents = new HashSet<>();
     for (Region region : regions) {
       compartmentCounts.merge(region.component, 1, Integer::sum);
+      if (!region.branched) {
+        closedCompartments.merge(region.component, 1, Integer::sum);
+        if (region.bounds.getWidth() > 1 && region.bounds.getHeight() > 1) {
+          interiorComponents.add(region.component);
+        }
+      }
+    }
+    Set<Integer> openCompartments = new HashSet<>();
+    for (Region region : regions) {
+      Region exterior = enclosing.get(region.component);
+      if (region.branched
+          && !region.splitBoundary
+          && compartmentCounts.get(region.component) > 1) {
+        if (exterior == null
+            && openedExteriors.contains(region.component)
+            && (!region.isRectangle()
+            || compartmentCounts.get(region.component) - closedCompartments.getOrDefault(
+                region.component,
+                0
+        ) > 1)
+            || exterior != null
+            && (exterior.branched
+            || !exterior.isRectangle()
+            && closedCompartments.getOrDefault(region.component, 0) < 2
+            && !interiorComponents.contains(region.component))) {
+          openCompartments.add(region.component);
+        }
+      }
+    }
+    Map<Integer, Region> enclosedOpenCompartments = new HashMap<>();
+    for (int component : openCompartments) {
+      Region exterior = enclosing.remove(component);
+      if (exterior != null) {
+        enclosedOpenCompartments.put(component, exterior);
+      }
+    }
+    if (!openCompartments.isEmpty()) {
+      openCompartmentEdges = new HashSet<>();
+    }
+    List<Region> openedRegions = new ArrayList<>();
+    regions.removeIf(region -> {
+      if (!region.branched
+          || region.splitBoundary
+          || !openCompartments.contains(region.component)) {
+        return false;
+      }
+      // A branched compartment opens its outline while the independent closed faces retain fills.
+      for (long segment : region.edges) {
+        if (!openCompartmentEdges.add(segment)) {
+          sharedOpenEdges.add(segment);
+        }
+      }
+      openedRegions.add(region);
+      for (long segment : innerBridges.getOrDefault(region.component, Set.of())) {
+        interiorBridges.put(segment, true);
+      }
+      return true;
+    });
+    Set<Long> discardedRegionEdges = new HashSet<>();
+    Set<Integer> joinedOpenComponents = new HashSet<>();
+    openedRegions.removeIf(region -> {
+      Region exterior = enclosedOpenCompartments.get(region.component);
+      Set<Long> outline = exterior == null ? exteriorEdges.get(region.component) : exterior.edges;
+      if (outline == null
+          || joinedOpenComponents.contains(region.component)
+          || exterior != null
+          && !exterior.isRectangle()
+          && closedCompartments.getOrDefault(region.component, 0) > 1
+          || Collections.disjoint(region.edges, sharedOpenEdges)) {
+        return false;
+      }
+      // Opening an enclosed group consumes its first inward branch and joins the exterior outline.
+      joinedOpenComponents.add(region.component);
+      separateContours.add(outline);
+      sharedOpenEdges.addAll(outline);
+      for (long segment : innerBridges.getOrDefault(region.component, Set.of())) {
+        int a = (int) (segment >>> 32), b = (int) segment;
+        if (region.gridPath.contains((a % width + b % width) / 2.0, (a / width + b / width) / 2.0)) {
+          discardedRegionEdges.add(segment);
+        }
+      }
+      return true;
+    });
+    regions.removeIf(region -> {
+      if (!region.branched
+          || region.shortBranch && !region.splitBoundary
+          || !(splitExteriors.contains(region.component)
+          || region.splitBoundary
+          && enclosing.containsKey(region.component)
+          && enclosing.get(region.component).branched)
+          || compartmentCounts.get(region.component) < 2) {
+        return false;
+      }
+      discardedRegionEdges.addAll(region.edges);
+      discardedRegionEdges.addAll(innerBridges.getOrDefault(region.component, Set.of()));
+      discardedRegionEdges.addAll(outerBridges.getOrDefault(region.component, Set.of()));
+      enclosing.remove(region.component);
+      return true;
+    });
+    Set<Region> preservedSplitFrames = new HashSet<>();
+    for (Region region : regions) {
+      if (!region.shortBranch
+          || region.splitBoundary
+          || !splitExteriors.contains(region.component)
+          || regions
+            .stream()
+            .noneMatch(other -> !other.branched
+                && !Collections.disjoint(region.edges, other.edges))) {
+        continue;
+      }
+      // Closed compartments preserve adjacent short branch outlines when a component splits.
+      preservedSplitFrames.add(region);
+      discardedRegionEdges.removeAll(region.edges);
+      discardedRegionEdges.removeIf(segment -> {
+        int a = (int) (segment >>> 32), b = (int) (long) segment;
+        return region.gridPath.contains(
+            (a % width + b % width) / 2.0,
+            (a / width + b / width) / 2.0
+        );
+      });
     }
     for (Region region : regions) {
-      if (region.shortBranch && !enclosing.containsKey(region.component)) {
+      if (region.shortBranch
+          && (!splitExteriors.contains(region.component)
+          || preservedSplitFrames.contains(region))
+          && !enclosing.containsKey(region.component)) {
         boolean junction = false;
         for (Point2D.Double point : region.points) {
           int x = (int) point.x, y = (int) point.y;
@@ -432,6 +587,21 @@ final class DiagramParser {
         }
       }
     }
+    Set<Long> enclosedBoundaryEdges = new HashSet<>();
+    for (Region region : regions) {
+      if (!region.branched || !enclosing.containsKey(region.component)) {
+        continue;
+      }
+      for (long segment : region.edges) {
+        if (!enclosedBoundaryEdges.add(segment)) {
+          if (openCompartmentEdges.isEmpty()) {
+            openCompartmentEdges = new HashSet<>();
+          }
+          openCompartmentEdges.add(segment);
+          repeatedConnectorEdges.add(segment);
+        }
+      }
+    }
     regions.removeIf(region -> region.branched
         && (enclosing.containsKey(region.component) || region.shortBranch));
     Map<Integer, Double> covered = new HashMap<>();
@@ -447,14 +617,15 @@ final class DiagramParser {
       boolean multipleParts = parts.getOrDefault(region.component, 0) > 1;
       boolean nested = false;
       if (multipleParts) {
-        Rectangle2D bounds = region.gridPath.getBounds2D();
+        Rectangle2D bounds = region.bounds;
         // One-cell-wide or one-cell-high contours have no interior cell for an enclosing fill.
         nested = bounds.getWidth() > 1
             && bounds.getHeight() > 1
             && new HashSet<>(region.points).size() == region.points.size()
             && contours
               .stream()
-              .anyMatch(parent -> parent.component != region.component
+              .anyMatch(parent -> !parent.branched
+                  && parent.component != region.component
                   && parent.gridPath.contains(region.points.get(0)));
       }
       // An exterior fill seed retains the enclosing contour before its compartments.
@@ -462,7 +633,7 @@ final class DiagramParser {
       if (exteriorFill) {
         regions.add(0, region);
       } else if (covered.getOrDefault(region.component, 0.0) < region.area || nested) {
-        regions.add(region);
+        regions.add(0, region);
       }
     }
     for (Region region : regions) {
@@ -473,6 +644,24 @@ final class DiagramParser {
       }
     }
     orderRegions(regions, components);
+    discardedRegionEdges.removeAll(boundary);
+    for (long segment : discardedRegionEdges) {
+      int a = (int) (segment >>> 32), b = (int) segment;
+      for (int d = 0; d < 4; d++) {
+        if (a + DX[d] + DY[d] * width != b) {
+          continue;
+        }
+        links[a / width][a % width] &= ~(1 << d);
+        links[b / width][b % width] &= ~(1 << ((d + 2) % 4));
+      }
+      consumed[a / width][a % width] = true;
+      consumed[b / width][b % width] = true;
+    }
+    for (long segment : discardedRegionEdges) {
+      int a = (int) (segment >>> 32), b = (int) segment;
+      discardConnectorCell(a, detachedArrows);
+      discardConnectorCell(b, detachedArrows);
+    }
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
         if (!discardedComponents.contains(components[y][x])) {
@@ -549,7 +738,16 @@ final class DiagramParser {
     for (Set<Long> contour : separateContours) {
       contourCopy(contour, boundary, drawing);
     }
+    for (Region region : openedRegions) {
+      contourCopy(
+          region.edges,
+          boundary,
+          drawing,
+          innerBridges.getOrDefault(region.component, Set.of())
+      );
+    }
     Set<Long> drawn = new HashSet<>(boundary);
+    drawn.addAll(sharedOpenEdges);
     for (int seed : orderedConnectors) {
       int cell = seed / 4;
       connectors(cell % width, cell / width, boundary, drawn, drawing, 1 << (seed % 4), null);
@@ -611,7 +809,11 @@ final class DiagramParser {
           );
           drawing.figures.add(arrowFigure);
         } else if (c == '*') {
-          if (links[y][x] != 0) {
+          if (links[y][x] != 0
+              || "-=+/\\".indexOf(at(x - 1, y)) >= 0
+              || "-=+/\\".indexOf(at(x + 1, y)) >= 0
+              || "|:+/\\".indexOf(at(x, y - 1)) >= 0
+              || "|:+/\\".indexOf(at(x, y + 1)) >= 0) {
             addMarker(x, y, drawing);
           }
         } else if (links[y][x] == 0 && (c == '-' || c == '|')) {
@@ -641,6 +843,7 @@ final class DiagramParser {
             : f.area)
         .reversed()
       )
+      .thenComparing(compositeConnectors::contains)
     );
 
     for (int y = 0; y < height; y++) {
@@ -672,11 +875,13 @@ final class DiagramParser {
           continue;
         }
         int start = x++;
-        while (x < width && !(at(x, y) == ' ' && at(x + 1, y) == ' ')) {
+        while (x < width
+            && (!(at(x, y) == ' ' && at(x + 1, y) == ' ')
+            || x == start + 1 && at(x + 2, y) != ' ' && groups[y][start] == groups[y][x + 2])) {
           x++;
         }
-        String label = new String(grid[y], start, x - start).stripTrailing();
-        if (label.length() == 1 && at(x, y) == ' ') {
+        String label = new String(grid[y], start, x - start);
+        if (label.length() == 1) {
           label += " ";
         }
         int end = start + label.length() - 1;
@@ -699,6 +904,7 @@ final class DiagramParser {
         // Text follows paint order so a later fill can cover an open frame.
         for (Drawing.Figure figure : drawing.figures) {
           if (figure.kind != Drawing.Figure.Kind.MARKER
+              && !compositeConnectors.contains(figure)
               && textBackgrounds.getOrDefault(figure, figure.path).intersects(textBounds)) {
             Color bg = figure.fill;
             // The reference uses the brightest RGB channel for text foreground.
@@ -730,6 +936,23 @@ final class DiagramParser {
     );
   }
 
+  private void discardConnectorCell(int cell, Set<Integer> detachedArrows) {
+    int x = cell % width, y = cell / width;
+    int connections = links[y][x];
+    if (Integer.bitCount(connections) == 1) {
+      int direction = Integer.numberOfTrailingZeros(connections);
+      int nx = x + DX[direction], ny = y + DY[direction];
+      if ("<>^vV".indexOf(at(nx, ny)) >= 0) {
+        links[y][x] = 0;
+        links[ny][nx] &= ~(1 << ((direction + 2) % 4));
+        detachedArrows.add(ny * width + nx);
+      }
+    }
+    if (links[y][x] == 0) {
+      grid[y][x] = ' ';
+    }
+  }
+
   private int[][] regionLinks() {
     // Arrowheads terminate shafts and cannot close a region.
     int[][] result = new int[height][];
@@ -753,44 +976,66 @@ final class DiagramParser {
   }
 
   private void orderRegions(List<Region> regions, int[][] components) {
-    // Equal-area regions retain the boundary raster's discovery order.
     if (regions.size() < 2) {
       return;
     }
-    int pixels = 0, largestComponent = 0;
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-        int mask = rasterDirections(x, y);
-        if (mask != 0) {
-          pixels += 1 + Integer.bitCount(mask);
-        }
-        largestComponent = Math.max(largestComponent, components[y][x]);
+    // Raster hash iteration preserves equal-area paint order, including treeified buckets.
+    int largestComponent = 0;
+    for (int[] row : components) {
+      for (int component : row) {
+        largestComponent = Math.max(largestComponent, component);
       }
     }
-    int capacity = 16;
-    while (pixels > capacity * .75) {
-      capacity *= 2;
+    int[] first = new int[largestComponent + 1];
+    Arrays.fill(first, Integer.MAX_VALUE);
+    int rank = 0;
+    for (long cell : boundaryRaster(null)) {
+      int point = rasterGridCell(cell);
+      int component = components[point / width][point % width];
+      if (component != 0) {
+        first[component] = Math.min(first[component], rank++);
+      }
     }
-    long[] first = new long[largestComponent + 1];
-    Arrays.fill(first, Long.MAX_VALUE);
+    regions.sort(Comparator.comparingInt(region -> first[region.component]));
+  }
+
+  private Set<Long> boundaryRaster(boolean[][] anchors) {
+    Set<Long> cells = new HashSet<>();
     for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-        int component = components[y][x];
-        if (component == 0) {
-          continue;
-        }
-        int mask = rasterDirections(x, y);
-        int rx = (x + 2) * 3 + 1, ry = (y + 2) * 3 + 1;
-        long priority = rasterPriority(rx, ry, capacity);
-        for (int d = 0; d < 4; d++) {
-          if ((mask & (1 << d)) != 0) {
-            priority = Math.min(priority, rasterPriority(rx + DX[d], ry + DY[d], capacity));
+      for (int offset = -1; offset <= 1; offset++) {
+        for (int x = 0; x < width; x++) {
+          int mask = rasterDirections(x, y);
+          if (mask == 0 || anchors != null && anchors[y][x]) {
+            continue;
+          }
+          int rx = (x + 2) * 3 + 1, ry = (y + 2) * 3 + 1 + offset;
+          if (offset == 0) {
+            if ((mask & 4) != 0) {
+              cells.add(rasterCell(rx - 1, ry));
+            }
+            cells.add(rasterCell(rx, ry));
+            if ((mask & 1) != 0) {
+              cells.add(rasterCell(rx + 1, ry));
+            }
+          } else if ((mask & (offset < 0 ? 8 : 2)) != 0) {
+            cells.add(rasterCell(rx, ry));
           }
         }
-        first[component] = Math.min(first[component], priority);
       }
     }
-    regions.sort(Comparator.comparingLong(region -> first[region.component]));
+    return cells;
+  }
+
+  private long rasterCell(int x, int y) {
+    int position = y * (width + 4) * 3 + x;
+    int hash = (x << 16) | y;
+    // Long.hashCode retains the cell hash while the low bits preserve wide raster positions.
+    return ((long) (hash ^ position) << 32) | (position & 0xffffffffL);
+  }
+
+  private int rasterGridCell(long cell) {
+    int stride = (width + 4) * 3, position = (int) cell;
+    return (position / stride / 3 - 2) * width + position % stride / 3 - 2;
   }
 
   private int rasterDirections(int x, int y) {
@@ -809,10 +1054,6 @@ final class DiagramParser {
       default:
         return 0;
     }
-  }
-
-  private long rasterPriority(int x, int y, int capacity) {
-    return ((long) cellBucket(x, y, capacity) << 32) | ((long) y * (width + 4) * 3 + x);
   }
 
   private int[][] components(int[][] connections) {
@@ -845,7 +1086,9 @@ final class DiagramParser {
   private List<Integer> prepareConnectors(Set<Long> boundary) {
     // Seeds encode a starting cell and direction as cell * 4 + direction.
     List<Integer> ordered = new ArrayList<>();
+    List<Map.Entry<Long, List<Integer>>> groups = new ArrayList<>();
     Set<Long> visited = new HashSet<>(boundary);
+    visited.addAll(sharedOpenEdges);
     // Arrows and closed boundary cells separate the groups that share a dash style.
     boolean[][] anchors = new boolean[height][width];
     for (int y = 0; y < height; y++) {
@@ -859,40 +1102,56 @@ final class DiagramParser {
         }
       }
     }
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-        if (anchors[y][x] || connectorStyles[y][x] != 0 || links[y][x] == 0) {
-          continue;
-        }
-        List<Integer> cells = new ArrayList<>();
-        ArrayDeque<Integer> pending = new ArrayDeque<>();
-        pending.add(y * width + x);
-        connectorStyles[y][x] = SOLID;
-        boolean dashed = false;
-        while (!pending.isEmpty()) {
-          int cell = pending.removeFirst();
-          cells.add(cell);
-          int cx = cell % width, cy = cell / width;
-          dashed |= at(cx, cy) == '=' || at(cx, cy) == ':';
-          for (int d = 0; d < 4; d++) {
-            int nx = cx + DX[d], ny = cy + DY[d];
-            if ((links[cy][cx] & (1 << d)) == 0
-                || anchors[ny][nx]
-                || connectorStyles[ny][nx] != 0) {
-              continue;
-            }
-            connectorStyles[ny][nx] = SOLID;
-            pending.add(ny * width + nx);
-          }
-        }
-        // A dashed group with one cell has no stroke in the reference.
-        if (dashed) {
-          for (int cell : cells) {
-            connectorStyles[cell / width][cell % width] = cells.size() == 1 ? HIDDEN : DASHED;
-          }
-        }
-        orderConnectors(cells, anchors, visited, ordered);
+    for (long initial : boundaryRaster(anchors)) {
+      int firstCell = rasterGridCell(initial);
+      int x = firstCell % width, y = firstCell / width;
+      if (connectorStyles[y][x] != 0 || links[y][x] == 0) {
+        continue;
       }
+      List<Integer> cells = new ArrayList<>();
+      ArrayDeque<Integer> pending = new ArrayDeque<>();
+      pending.add(y * width + x);
+      connectorStyles[y][x] = SOLID;
+      boolean dashed = false;
+      while (!pending.isEmpty()) {
+        int cell = pending.removeFirst();
+        cells.add(cell);
+        int cx = cell % width, cy = cell / width;
+        dashed |= at(cx, cy) == '=' || at(cx, cy) == ':';
+        for (int d = 0; d < 4; d++) {
+          int nx = cx + DX[d], ny = cy + DY[d];
+          if ((openConnectorDirections(cx, cy) & (1 << d)) == 0
+              || anchors[ny][nx]
+              || connectorStyles[ny][nx] != 0) {
+            continue;
+          }
+          connectorStyles[ny][nx] = SOLID;
+          pending.add(ny * width + nx);
+        }
+      }
+      // A dashed group with one cell has no stroke in the reference.
+      if (dashed) {
+        for (int cell : cells) {
+          connectorStyles[cell / width][cell % width] = cells.size() == 1 ? HIDDEN : DASHED;
+        }
+      }
+      if (cells.size() > 1) {
+        for (int cell : cells) {
+          connectorStyles[cell / width][cell % width] |= COMPOSITE;
+        }
+      }
+      long priority = groups.size();
+      for (int cell : cells) {
+        if (boundedComponents.contains(regionComponents[cell / width][cell % width])) {
+          priority += 1L << 62;
+          break;
+        }
+      }
+      groups.add(Map.entry(priority, cells));
+    }
+    groups.sort(Map.Entry.comparingByKey());
+    for (var group : groups) {
+      orderConnectors(group.getValue(), anchors, visited, ordered);
     }
     return ordered;
   }
@@ -912,7 +1171,7 @@ final class DiagramParser {
     for (int cell : cells) {
       int x = cell % width, y = cell / width, neighbours = 0;
       for (int d = 0; d < 4; d++) {
-        if ((links[y][x] & (1 << d)) != 0 && !anchors[y + DY[d]][x + DX[d]]) {
+        if ((openConnectorDirections(x, y) & (1 << d)) != 0 && !anchors[y + DY[d]][x + DX[d]]) {
           neighbours++;
         }
       }
@@ -964,10 +1223,11 @@ final class DiagramParser {
         }
         x = nx;
         y = ny;
-        if (anchors[y][x] || Integer.bitCount(links[y][x]) != 2) {
+        int nextDirections = openConnectorDirections(x, y);
+        if (anchors[y][x] || Integer.bitCount(nextDirections) != 2) {
           break;
         }
-        d = Integer.numberOfTrailingZeros(links[y][x] & ~(1 << ((d + 2) % 4)));
+        d = Integer.numberOfTrailingZeros(nextDirections & ~(1 << ((d + 2) % 4)));
       } while (true);
       if (anchors[y][x]) {
         ordered.add(seed);
@@ -1053,15 +1313,37 @@ final class DiagramParser {
     List<Integer> ends = new ArrayList<>();
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
-        if (at(x, y) == '+' && Integer.bitCount(links[y][x]) == 1) {
+        if (at(x, y) != '+') {
+          continue;
+        }
+        int diagonalNeighbours = 0;
+        if (links[y][x] == 0) {
+          for (int direction = 0; direction < 4; direction++) {
+            char neighbour = at(x + DX[direction], y + DY[direction]);
+            if (neighbour == '/' || neighbour == '\\') {
+              diagonalNeighbours++;
+            }
+          }
+        }
+        if (Integer.bitCount(links[y][x]) == 1 || diagonalNeighbours == 1) {
           ends.add(y * width + x);
         }
       }
     }
     for (int cell : ends) {
       int x = cell % width, y = cell / width;
-      consumed[y][x] = true;
       int connections = links[y][x];
+      boolean textNeighbour = connections == 0
+          && (Character.isLetterOrDigit(at(x - 1, y)) || Character.isLetterOrDigit(at(x + 1, y)));
+      if (connections != 0) {
+        int connected = Integer.numberOfTrailingZeros(connections);
+        for (int offset = 1; offset < 4; offset += 2) {
+          int side = (connected + offset) % 4;
+          char diagonal = at(x + DX[connected] + DX[side], y + DY[connected] + DY[side]);
+          textNeighbour |= "-=|:+/\\".indexOf(diagonal) >= 0;
+        }
+      }
+      consumed[y][x] = !textNeighbour;
       links[y][x] = 0;
       if (connections == 0) {
         continue;
@@ -1127,6 +1409,18 @@ final class DiagramParser {
     connectors(x, y, boundary, drawn, drawing, 15, null);
   }
 
+  private int openConnectorDirections(int x, int y) {
+    int directions = links[y][x];
+    if (!sharedOpenEdges.isEmpty()) {
+      for (int d = 0; d < 4; d++) {
+        if (sharedOpenEdges.contains(edge(x, y, x + DX[d], y + DY[d]))) {
+          directions &= ~(1 << d);
+        }
+      }
+    }
+    return directions;
+  }
+
   private void connectors(
       int x,
       int y,
@@ -1159,10 +1453,11 @@ final class DiagramParser {
         }
         points.add(new Point2D.Double(nx, ny));
         // An arrowhead terminates each shaft independently of the arrow's direction.
-        if (Integer.bitCount(links[ny][nx]) != 2 || "<>^vV".indexOf(at(nx, ny)) >= 0) {
+        int nextDirections = openConnectorDirections(nx, ny);
+        if (Integer.bitCount(nextDirections) != 2 || "<>^vV".indexOf(at(nx, ny)) >= 0) {
           break;
         }
-        int remaining = links[ny][nx] & ~(1 << ((d + 2) % 4));
+        int remaining = nextDirections & ~(1 << ((d + 2) % 4));
         px = nx;
         py = ny;
         d = Integer.numberOfTrailingZeros(remaining);
@@ -1186,13 +1481,29 @@ final class DiagramParser {
       Drawing drawing,
       boolean repeatAllowed
   ) {
-    boolean dashed = false;
-    for (Point2D.Double point : points) {
-      int style = connectorStyles[(int) point.y][(int) point.x];
-      if (style == HIDDEN) {
+    if (!openCompartmentEdges.isEmpty() && points.size() > 2) {
+      trimOpenCompartmentEnd(points, boundary, true);
+      trimOpenCompartmentEnd(points, boundary, false);
+    }
+    if (repeatAllowed && points.size() == 2) {
+      Point2D.Double first = points.get(0), last = points.get(1);
+      if (exteriorBridgeEdges.contains(
+              edge((int) first.x, (int) first.y, (int) last.x, (int) last.y)
+          )
+          && (continuedBoundaryBridge(first, last) || continuedBoundaryBridge(last, first))) {
+        // A continued shaft absorbs its one-cell bridge at a closed outline.
         return;
       }
-      dashed |= style == DASHED;
+    }
+    boolean dashed = false;
+    boolean composite = false;
+    for (Point2D.Double point : points) {
+      int style = connectorStyles[(int) point.y][(int) point.x];
+      composite |= (style & COMPOSITE) != 0;
+      if ((style & 3) == HIDDEN) {
+        return;
+      }
+      dashed |= (style & 3) == DASHED;
     }
     Boolean interior = null;
     for (int i = 1; interior == null && i < points.size(); i++) {
@@ -1250,6 +1561,16 @@ final class DiagramParser {
     corners.add(new Point2D.Float((float) cx(end.x), (float) cy(end.y)));
     Drawing.Figure figure =
         new Drawing.Figure(path, null, dashed, Drawing.Figure.Kind.CONNECTOR, polygonArea(corners));
+    int shaftCells = 0;
+    for (Point2D.Double point : points) {
+      if ("-=|:".indexOf(at((int) point.x, (int) point.y)) >= 0) {
+        shaftCells++;
+      }
+    }
+    // Multi-cell shafts belong to composite outlines and do not set text foreground.
+    if (interior != null || composite || shaftCells > 1 || corners.size() > 2) {
+      compositeConnectors.add(figure);
+    }
     // Exterior stubs precede interior stubs at shared antialiased junctions.
     List<Drawing.Figure> target =
         direct ? directFigures : Boolean.TRUE.equals(interior) ? interiorFigures : drawing.figures;
@@ -1257,16 +1578,44 @@ final class DiagramParser {
     boolean repeated = repeatAllowed;
     for (int i = 1; repeated && i < points.size(); i++) {
       Point2D.Double before = points.get(i - 1), after = points.get(i);
-      repeated = repeatedConnectorEdges.contains(
-          edge((int) before.x, (int) before.y, (int) after.x, (int) after.y)
-      );
+      long segment = edge((int) before.x, (int) before.y, (int) after.x, (int) after.y);
+      repeated = repeatedConnectorEdges.contains(segment);
     }
     if (repeated) {
       target.add(figure);
     }
   }
 
+  private void trimOpenCompartmentEnd(
+      List<Point2D.Double> points,
+      Set<Long> boundary,
+      boolean start
+  ) {
+    if (points.size() < 3) {
+      return;
+    }
+    int index = start ? 0 : points.size() - 1;
+    Point2D.Double end = points.get(index), adjacent = points.get(start ? 1 : index - 1);
+    if (at((int) adjacent.x, (int) adjacent.y) == '+'
+        && boundaryPoint(end, boundary)
+        && openCompartmentEdges.contains(
+            edge((int) end.x, (int) end.y, (int) adjacent.x, (int) adjacent.y)
+        )) {
+      // Splitting a closed face consumes a one-cell arm ending at the next open corner.
+      points.remove(index);
+    }
+  }
+
   private void contourCopy(Set<Long> contour, Set<Long> boundary, Drawing drawing) {
+    contourCopy(contour, boundary, drawing, exteriorBridgeEdges);
+  }
+
+  private void contourCopy(
+      Set<Long> contour,
+      Set<Long> boundary,
+      Drawing drawing,
+      Set<Long> junctionBridges
+  ) {
     Map<Integer, Integer> connections = new TreeMap<>();
     for (long edge : contour) {
       if (boundary.contains(edge)) {
@@ -1288,7 +1637,7 @@ final class DiagramParser {
         stops.add(cell);
       }
       for (int d = 0; d < 4; d++) {
-        if (exteriorBridgeEdges.contains(edge(x, y, x + DX[d], y + DY[d]))) {
+        if (junctionBridges.contains(edge(x, y, x + DX[d], y + DY[d]))) {
           stops.add(cell);
         }
       }
@@ -1338,6 +1687,22 @@ final class DiagramParser {
     }
   }
 
+  private boolean continuedBoundaryBridge(Point2D.Double point, Point2D.Double other) {
+    int x = (int) point.x, y = (int) point.y, ox = (int) other.x, oy = (int) other.y;
+    if ("+*".indexOf(at(x, y)) < 0
+        || Integer.bitCount(links[y][x]) < 3
+        || "+*".indexOf(at(ox, oy)) < 0
+        || Integer.bitCount(links[oy][ox]) < 2
+        || links[oy][ox] == 5
+        || links[oy][ox] == 10
+        || links[y][x] != 15 && links[oy][ox] != 15) {
+      return false;
+    }
+    char shaft = at(2 * x - ox, 2 * y - oy);
+    char continuation = at(2 * ox - x, 2 * oy - y);
+    return "+*/\\".indexOf(continuation) < 0 && (x == ox ? "|:" : "-=").indexOf(shaft) >= 0;
+  }
+
   private void orientMixedStub(List<Point2D.Double> points) {
     boolean rootAtStart = boundaryPoint(points.get(0), mixedCycleEdges);
     if (rootAtStart == boundaryPoint(points.get(points.size() - 1), mixedCycleEdges)) {
@@ -1376,12 +1741,24 @@ final class DiagramParser {
     Point2D.Double point = points.get(index);
     double x = cx(point.x), y = cy(point.y);
     char c = at((int) point.x, (int) point.y);
-    if (c == '*') {
+    if (c == '-' || c == '|') {
+      Point2D.Double adjacent = points.get(index == 0 ? 1 : index - 1);
+      int nx = (int) point.x + (int) Math.signum(point.x - adjacent.x);
+      int ny = (int) point.y + (int) Math.signum(point.y - adjacent.y);
+      if ((at(nx, ny) == '/' || at(nx, ny) == '\\') && links[ny][nx] != 0) {
+        return new Point2D.Double(cx(nx), cy(ny));
+      }
+    }
+    if (c == '*' || c == '+') {
       Point2D.Double adjacent = points.get(index == 0 ? 1 : index - 1);
       int ox = (int) point.x + (int) Math.signum(point.x - adjacent.x);
       int oy = (int) point.y + (int) Math.signum(point.y - adjacent.y);
-      // A shaft continues through a marker to the arrowhead on its opposite side.
-      if ("<>^vV".indexOf(at(ox, oy)) >= 0) {
+      // A shaft continues through a junction to the arrowhead on its opposite side.
+      if ("<>^".indexOf(at(ox, oy)) >= 0
+          || "vV".indexOf(at(ox, oy)) >= 0 && basicDirections(ox, oy) != 0) {
+        return new Point2D.Double(cx(ox), cy(oy));
+      }
+      if (c == '*' && (at(ox, oy) == '/' || at(ox, oy) == '\\') && links[oy][ox] != 0) {
         return new Point2D.Double(cx(ox), cy(oy));
       }
     }
@@ -1412,19 +1789,25 @@ final class DiagramParser {
       int ox = (int) other.x, oy = (int) other.y;
       boolean anchored = "<>^vV".indexOf(at(ox, oy)) >= 0;
       if (!anchored) {
-        int closedEdges = 0, connections = 0;
+        int closedEdges = 0, closedDirections = 0, connections = 0;
         for (int d = 0; d < 4; d++) {
           if ((links[oy][ox] & (1 << d)) != 0) {
             int nx = ox + DX[d], ny = oy + DY[d];
             if (boundary.contains(edge(ox, oy, nx, ny))) {
               closedEdges++;
+              closedDirections |= 1 << d;
             } else if (cornerBridge(ox, oy, nx, ny, boundary)) {
               continue;
             }
             connections++;
           }
         }
-        anchored = closedEdges >= 2 && connections == closedEdges + 1;
+        anchored = closedEdges >= 2
+            && (connections == closedEdges + 1
+            || connections == 4
+            && closedEdges == 2
+            && closedDirections != 5
+            && closedDirections != 10);
       }
       if (anchored) {
         if (c == '-') {
@@ -1482,10 +1865,12 @@ final class DiagramParser {
         firstBucket = bucket;
       }
     }
-    boolean clockwise = boundaryBucket(p.get((seed + 1) % p.size()), 16) < boundaryBucket(
-        p.get((seed + p.size() - 1) % p.size()),
-        16
-    );
+    Point2D.Double nextSeed = p.get((seed + 1) % p.size());
+    int nextBucket = boundaryBucket(nextSeed, 16);
+    int previousBucket = boundaryBucket(p.get((seed + p.size() - 1) % p.size()), 16);
+    boolean clockwise =
+        nextBucket < previousBucket
+        || nextBucket == previousBucket && nextSeed.x == p.get(seed).x;
     if (clockwise) {
       Collections.reverse(corners.subList(1, corners.size()));
     }
@@ -1576,7 +1961,7 @@ final class DiagramParser {
     Rectangle2D bounds = path.getBounds2D();
     double x = bounds.getX(), y = bounds.getY(), w = bounds.getWidth(), h = bounds.getHeight();
     double skew = cellWidth / 2.0;
-    if (region.tag.isEmpty()) {
+    if (region.tag.isEmpty() || region.tag.equals("d") && corners.size() != 4) {
       return path;
     }
     if (region.tag.equals("o")) {
@@ -1762,12 +2147,14 @@ final class DiagramParser {
     final List<Point2D.Double> points;
     final Path2D.Double gridPath = new Path2D.Double();
     final Path2D.Float textBackground = new Path2D.Float();
+    final Rectangle2D bounds;
     final double area;
     final boolean dashed;
     final int component;
     final Set<Long> edges;
     final boolean branched;
     final boolean shortBranch;
+    final boolean splitBoundary;
     Color colour = Color.WHITE;
     String tag = "";
     Drawing.Figure figure;
@@ -1780,7 +2167,8 @@ final class DiagramParser {
         int component,
         Set<Long> edges,
         boolean branched,
-        boolean shortBranch
+        boolean shortBranch,
+        boolean splitBoundary
     ) {
       this.points = points;
       this.area = area;
@@ -1789,11 +2177,13 @@ final class DiagramParser {
       this.edges = edges;
       this.branched = branched;
       this.shortBranch = shortBranch;
+      this.splitBoundary = splitBoundary;
       gridPath.moveTo(points.get(0).x, points.get(0).y);
       for (int i = 1; i < points.size(); i++) {
         gridPath.lineTo(points.get(i).x, points.get(i).y);
       }
       gridPath.closePath();
+      bounds = gridPath.getBounds2D();
     }
 
     boolean fillsExterior() {
@@ -1801,7 +2191,6 @@ final class DiagramParser {
       if (perimeter.size() != points.size()) {
         return false;
       }
-      Rectangle2D bounds = gridPath.getBounds2D();
       int row = (int) bounds.getMinY() + 1;
       if (row >= bounds.getMaxY()) {
         return false;
@@ -1817,6 +2206,10 @@ final class DiagramParser {
       }
       // Without a free cell, the scan cannot seed a separate enclosing fill.
       return false;
+    }
+
+    boolean isRectangle() {
+      return area == 2 * bounds.getWidth() * bounds.getHeight();
     }
   }
 }

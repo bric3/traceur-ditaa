@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<svg 
+    xmlns='http://www.w3.org/2000/svg'
+    width='170'
+    height='196'
+    shape-rendering='geometricPrecision'
+    version='1.0'>
+  <defs>
+    <filter id='f2' x='0' y='0' width='200%' height='200%'>
+      <feOffset result='offOut' in='SourceGraphic' dx='5' dy='5' />
+      <feGaussianBlur result='blurOut' in='offOut' stdDeviation='3' />
+      <feBlend in='SourceGraphic' in2='blurOut' mode='normal' />
+    </filter>
+  </defs>
+  <g stroke-width='1' stroke-linecap='square' stroke-linejoin='round'>
+    <rect x='0' y='0' width='170' height='196' style='fill: #ffffff'/>
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M25.0 49.0 L40.0 49.0 Q45.0 49.0 45.0 42.0 L45.0 35.0 L45.0 35.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M145.0 49.0 L130.0 49.0 Q125.0 49.0 125.0 42.0 L125.0 35.0 L125.0 35.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M65.0 91.0 L55.0 91.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M125.0 147.0 L125.0 133.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M125.0 147.0 L125.0 161.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M125.0 147.0 L145.0 147.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M105.0 147.0 L125.0 147.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M65.0 49.0 L45.0 49.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M45.0 147.0 L45.0 133.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M45.0 147.0 L45.0 161.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M45.0 147.0 L65.0 147.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M25.0 147.0 L45.0 147.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M105.0 91.0 L115.0 91.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M125.0 49.0 L105.0 49.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M25.0 91.0 L35.0 91.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M145.0 91.0 L135.0 91.0 ' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='#ffffff' d='M38.5 49.0 C38.5 50.932995 36.932995 52.5 35.0 52.5 C33.067005 52.5 31.5 50.932995 31.5 49.0 C31.5 47.067005 33.067005 45.5 35.0 45.5 C36.932995 45.5 38.5 47.067005 38.5 49.0 z' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='#ffffff' d='M48.5 77.0 C48.5 78.933 46.932995 80.5 45.0 80.5 C43.067005 80.5 41.5 78.933 41.5 77.0 C41.5 75.067 43.067005 73.5 45.0 73.5 C46.932995 73.5 48.5 75.067 48.5 77.0 z' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='#ffffff' d='M48.5 105.0 C48.5 106.933 46.932995 108.5 45.0 108.5 C43.067005 108.5 41.5 106.933 41.5 105.0 C41.5 103.067 43.067005 101.5 45.0 101.5 C46.932995 101.5 48.5 103.067 48.5 105.0 z' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='#ffffff' d='M58.5 49.0 C58.5 50.932995 56.932995 52.5 55.0 52.5 C53.067005 52.5 51.5 50.932995 51.5 49.0 C51.5 47.067005 53.067005 45.5 55.0 45.5 C56.932995 45.5 58.5 47.067005 58.5 49.0 z' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='#ffffff' d='M128.5 147.0 C128.5 148.933 126.933 150.5 125.0 150.5 C123.067 150.5 121.5 148.933 121.5 147.0 C121.5 145.067 123.067 143.5 125.0 143.5 C126.933 143.5 128.5 145.067 128.5 147.0 z' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='#ffffff' d='M118.5 49.0 C118.5 50.932995 116.933 52.5 115.0 52.5 C113.067 52.5 111.5 50.932995 111.5 49.0 C111.5 47.067005 113.067 45.5 115.0 45.5 C116.933 45.5 118.5 47.067005 118.5 49.0 z' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='#ffffff' d='M128.5 77.0 C128.5 78.933 126.933 80.5 125.0 80.5 C123.067 80.5 121.5 78.933 121.5 77.0 C121.5 75.067 123.067 73.5 125.0 73.5 C126.933 73.5 128.5 75.067 128.5 77.0 z' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='#ffffff' d='M128.5 105.0 C128.5 106.933 126.933 108.5 125.0 108.5 C123.067 108.5 121.5 106.933 121.5 105.0 C121.5 103.067 123.067 101.5 125.0 101.5 C126.933 101.5 128.5 103.067 128.5 105.0 z' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='#ffffff' d='M138.5 49.0 C138.5 50.932995 136.933 52.5 135.0 52.5 C133.067 52.5 131.5 50.932995 131.5 49.0 C131.5 47.067005 133.067 45.5 135.0 45.5 C136.933 45.5 138.5 47.067005 138.5 49.0 z' />
+    <path stroke='#000000' stroke-width='1.000000' stroke-linecap='round' stroke-linejoin='round' fill='#ffffff' d='M48.5 147.0 C48.5 148.933 46.932995 150.5 45.0 150.5 C43.067005 150.5 41.5 148.933 41.5 147.0 C41.5 145.067 43.067005 143.5 45.0 143.5 C46.932995 143.5 48.5 145.067 48.5 147.0 z' />
+    <text x='44' y='96' font-family='Courier' font-size='15' stroke='none' fill='#000000' ><![CDATA[/ ]]></text>
+    <text x='44' y='54' font-family='Courier' font-size='15' stroke='none' fill='#000000' ><![CDATA[/ ]]></text>
+    <text x='124' y='96' font-family='Courier' font-size='15' stroke='none' fill='#000000' ><![CDATA[\ ]]></text>
+    <text x='124' y='54' font-family='Courier' font-size='15' stroke='none' fill='#000000' ><![CDATA[\ ]]></text>
+  </g>
+</svg>

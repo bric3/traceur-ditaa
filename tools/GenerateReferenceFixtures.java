@@ -84,6 +84,9 @@ class GenerateReferenceFixtures {
           + "\nplantuml.sha256="
           + hash
           + "\npng.api=raw-text\n";
+      if (System.getProperty("os.name").equals("Mac OS X")) {
+        metadata += "png.fonts=primed-ascii\n";
+      }
     }
     List<Path> inputs;
     try (var files = Files.list(inputsDirectory)) {
@@ -123,7 +126,8 @@ class GenerateReferenceFixtures {
           "UTF-8",
           "-d",
           helperClasses.toString(),
-          "src/tools/java/OraclePngProcess.java"
+          "src/tools/java/OraclePngProcess.java",
+          "src/tools/java/io/github/bric3/traceur/ditaa/testing/ReferenceFonts.java"
       );
     if (compilation != 0) {
       throw new IllegalStateException("Cannot compile the raw-text PNG entry point");
@@ -169,6 +173,7 @@ class GenerateReferenceFixtures {
               Process process = new ProcessBuilder(
                   javaCommand,
                   "-Djava.awt.headless=true",
+                  "-Dtraceur.reference.warmFonts=true",
                   "-cp",
                   oracleClasspath,
                   "OraclePngProcess",

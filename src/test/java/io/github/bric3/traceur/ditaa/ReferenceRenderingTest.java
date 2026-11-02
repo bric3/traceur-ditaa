@@ -9,14 +9,31 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import io.github.bric3.traceur.ditaa.testing.ReferenceFonts;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Stream;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class ReferenceRenderingTest {
+  @BeforeAll
+  static void primeReferenceFonts() throws Exception {
+    if (ReferenceFonts.requiresWarmup()) {
+      for (double scale : new double[] {1, .7, 2}) {
+        new DitaaRenderer()
+          .render(
+              ReferenceFonts.PRIMER,
+              new RenderOptions(scale, false, true),
+              RenderTarget.png(OutputStream.nullOutputStream())
+          );
+      }
+    }
+  }
+
   private static final String REFERENCE_DIRECTORY =
       System.getProperty("os.name").equals("Linux") ? "linux/" : "";
 

@@ -7,6 +7,7 @@ import java.io.IOException;
 import static io.github.bric3.traceur.ditaa.DiagramFixtures.layout;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -17,6 +18,108 @@ import org.tabletest.junit.TableTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class RegionGeometryTest {
+  @TableTest({
+    "layout | regions | width | height",
+    "0      | 3       | 350   | 84    ",
+    "1      | 2       | 70    | 28    ",
+    "2      | 2       | 70    | 28    "
+  })
+  void connectedInnerCyclesRetainIndependentFills(int index, int count, double width, double height)
+      throws IOException {
+    assertRegionBounds(
+        DiagramParser.parse(layout("nested-split-cycles", 3, index), RenderOptions.DEFAULT),
+        count,
+        width,
+        height
+    );
+  }
+
+  @TableTest({
+    "layout | regions | width | height",
+    "0      | 2       | 238   | 38    ",
+    "1      | 2       | 76    | 166   ",
+    "2      | 2       | 238   | 38    ",
+    "3      | 2       | 238   | 38    ",
+    "4      | 2       | 238   | 54    ",
+    "5      | 1       | 80    | 14    ",
+    "6      | 2       | 38    | 42    "
+  })
+  void sharedBranchedCompartmentsKeepTheirEnclosingFills(
+      int index,
+      int count,
+      double width,
+      double height
+  ) throws IOException {
+    var drawing =
+        DiagramParser.parse(layout("shared-open-compartments", 7, index), RenderOptions.DEFAULT);
+    assertRegionBounds(drawing, count, width, height);
+  }
+
+  @ParameterizedTest
+  @MethodSource("isolatedBranches")
+  void isolatedBranchesAndLooseLinesKeepTheReferenceFills(
+      String text,
+      int count,
+      double width,
+      double height
+  ) {
+    assertRegionBounds(DiagramParser.parse(text, RenderOptions.DEFAULT), count, width, height);
+  }
+
+  static Stream<Arguments> isolatedBranches() {
+    return Stream.of(
+        Arguments.of("+-------+-------+\n|   |   +-------+\n|   |   |\n+---+---+", 1, 80, 14),
+        Arguments.of(
+            "+-------+-------+\n|       |       |\n|   |   |       |\n+---+---+-------+-",
+            1,
+            80,
+            42
+        ),
+        Arguments.of(
+            "+-------+-------+\n|       +--+    |\n|   |      |    |\n+---+------+----+-",
+            1,
+            80,
+            42
+        ),
+        Arguments.of("+--+ +--+\n|  | |  |\n+--+ +--+\n\n|", 2, 30, 28)
+    );
+  }
+
+  private static void assertRegionBounds(Drawing drawing, int count, double width, double height) {
+    var regions = drawing.figures
+      .stream()
+      .filter(figure -> figure.kind == Drawing.Figure.Kind.REGION)
+      .collect(Collectors.toList());
+    assertEquals(count, regions.size());
+    var bounds = regions
+      .stream()
+      .max(Comparator.comparingDouble(figure -> figure.area))
+      .orElseThrow().path.getBounds2D();
+    assertEquals(width, bounds.getWidth());
+    assertEquals(height, bounds.getHeight());
+    assertTrue(drawing.labels.isEmpty());
+  }
+
+  @Test
+  void scaledWideDiagramsRetainDistantRegions() {
+    String gap = " ".repeat(21996);
+    String text = "+--+" + gap + "+--+\n|  |" + gap + "|  |\n+--+" + gap + "+--+";
+    var drawing = DiagramParser.parse(text, new RenderOptions(.1, false, true));
+    assertEquals(2, drawing.figures.size());
+    assertTrue(drawing.figures
+      .stream()
+      .allMatch(figure -> figure.kind == Drawing.Figure.Kind.REGION)
+    );
+    assertEquals(
+        List.of(2.0, 22002.0),
+        drawing.figures
+          .stream()
+          .map(figure -> figure.path.getBounds2D().getMinX())
+          .sorted()
+          .collect(Collectors.toList())
+    );
+  }
+
   @TableTest({
     "Compartments",
     "{2, 3, 4}   "
