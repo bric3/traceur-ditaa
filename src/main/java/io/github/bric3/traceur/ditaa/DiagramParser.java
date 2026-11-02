@@ -23,6 +23,9 @@ import java.util.regex.Pattern;
 final class DiagramParser {
   private static final int MAX_CELLS = 250_000;
   private static final long MAX_PIXELS = 25_000_000;
+  private static final byte SOLID = 1;
+  private static final byte DASHED = 2;
+  private static final byte HIDDEN = 3;
   private static final Pattern MARKUP =
       Pattern.compile("c([0-9A-F]{3}|RED|BLU|GRE|PNK|BLK|YEL)|\\{(d|s|io|o|mo|c|tr)\\}");
   private static final int[] DX = {1, 0, -1, 0};
@@ -32,6 +35,7 @@ final class DiagramParser {
   private final int height;
   private final char[][] grid;
   private final int[][] links;
+  private final byte[][] connectorStyles;
   private final boolean[][] consumed;
   private final RenderOptions options;
   private final int cellWidth;
@@ -45,6 +49,7 @@ final class DiagramParser {
     this.cellHeight = (int) (14 * options.scale());
     grid = new char[height][width];
     links = new int[height][width];
+    connectorStyles = new byte[height][width];
     consumed = new boolean[height][width];
     for (int y = 0; y < height; y++) {
       Arrays.fill(grid[y], ' ');
@@ -266,6 +271,7 @@ final class DiagramParser {
     }
 
     // Draw each remaining connector as a continuous path so dash phase spans cells.
+    prepareConnectorStyles(boundary);
     Set<Long> drawn = new HashSet<>(boundary);
     for (int y = 0; y < height; y++)
       for (int x = 0; x < width; x++) {
@@ -409,6 +415,44 @@ final class DiagramParser {
     }
   }
 
+  private void prepareConnectorStyles(Set<Long> boundary) {
+    // Arrows and closed boundary cells separate the groups that share a dash style.
+    boolean[][] anchors = new boolean[height][width];
+    for (int y = 0; y < height; y++)
+      for (int x = 0; x < width; x++) {
+        anchors[y][x] = links[y][x] != 0 && "<>^vV".indexOf(at(x, y)) >= 0;
+        for (int d = 0; d < 4; d++)
+          if ((links[y][x] & (1 << d)) != 0 && boundary.contains(edge(x, y, x + DX[d], y + DY[d])))
+            anchors[y][x] = true;
+      }
+    for (int y = 0; y < height; y++)
+      for (int x = 0; x < width; x++) {
+        if (anchors[y][x] || connectorStyles[y][x] != 0 || links[y][x] == 0) continue;
+        List<Integer> cells = new ArrayList<>();
+        ArrayDeque<Integer> pending = new ArrayDeque<>();
+        pending.add(y * width + x);
+        connectorStyles[y][x] = SOLID;
+        boolean dashed = false;
+        while (!pending.isEmpty()) {
+          int cell = pending.removeFirst();
+          cells.add(cell);
+          int cx = cell % width, cy = cell / width;
+          dashed |= at(cx, cy) == '=' || at(cx, cy) == ':';
+          for (int d = 0; d < 4; d++) {
+            int nx = cx + DX[d], ny = cy + DY[d];
+            if ((links[cy][cx] & (1 << d)) == 0 || anchors[ny][nx] || connectorStyles[ny][nx] != 0)
+              continue;
+            connectorStyles[ny][nx] = SOLID;
+            pending.add(ny * width + nx);
+          }
+        }
+        // A dashed group with one cell has no stroke in the reference.
+        if (dashed)
+          for (int cell : cells)
+            connectorStyles[cell / width][cell % width] = cells.size() == 1 ? HIDDEN : DASHED;
+      }
+  }
+
   private void removePlusEnds() {
     // Snapshot the endpoints so adjacent '+' cells retain their original degree.
     List<Integer> ends = new ArrayList<>();
@@ -489,13 +533,15 @@ final class DiagramParser {
       List<Point2D.Double> points = new ArrayList<>();
       points.add(new Point2D.Double(x, y));
       int px = x, py = y, d = direction;
-      boolean dashed = at(px, py) == '=' || at(px, py) == ':';
+      boolean dashed = connectorStyles[py][px] == DASHED;
+      boolean hidden = connectorStyles[py][px] == HIDDEN;
       do {
         nx = px + DX[d];
         ny = py + DY[d];
         if (!drawn.add(edge(px, py, nx, ny))) break;
         points.add(new Point2D.Double(nx, ny));
-        dashed |= at(nx, ny) == '=' || at(nx, ny) == ':';
+        dashed |= connectorStyles[ny][nx] == DASHED;
+        hidden |= connectorStyles[ny][nx] == HIDDEN;
         // An arrowhead terminates each shaft independently of the arrow's direction.
         if (Integer.bitCount(links[ny][nx]) != 2 || "<>^vV".indexOf(at(nx, ny)) >= 0) break;
         int remaining = links[ny][nx] & ~(1 << ((d + 2) % 4));
@@ -503,6 +549,7 @@ final class DiagramParser {
         py = ny;
         d = Integer.numberOfTrailingZeros(remaining);
       } while (true);
+      if (hidden) continue;
       if (Integer.bitCount(links[y][x]) == 1 && Integer.bitCount(links[ny][nx]) == 1) {
         // The reference starts dashes at the first endpoint in its padded grid hash order.
         int capacity = 16;
