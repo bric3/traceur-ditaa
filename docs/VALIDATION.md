@@ -5,14 +5,14 @@ Every pinned corpus comparison passes.
 
 ## Build
 
-All 3,694 renderer tests pass across Java 11 and Java 25 on macOS, along with
-20 build-logic checks. The same 1,847 renderer tests pass on each JDK in isolated
-Linux containers. The suite includes 1,584 exact PNG/SVG
-comparisons of project-authored fixtures. It covers encoding, shapes, connectors,
+All 4,126 renderer tests pass across Java 11 and Java 25 on macOS, along with
+20 build-logic checks. The same 2,063 renderer tests pass on each JDK in isolated
+Linux containers. The suite includes 1,800 exact PNG/SVG comparisons of 75
+project-authored and blog fixtures. It covers encoding, shapes, connectors,
 options, text, allocation limits, unavailable PNG encoders, write failures and
 concurrent rendering. Stream API checks cover reader limits, UTF-8 and caller-selected
 encoding, resource ownership, caller-controlled buffering, and read/write failures.
-Renderer coverage is 99.2% of lines and 97.5% of branches,
+Renderer coverage is 99.3% of lines and 97.8% of branches,
 with no exclusions. `check` requires at least 99% line and 97% branch coverage.
 Library classes target bytecode version 55 and depend only on
 `java.base` and `java.desktop`. Release JARs include the MPL-2.0 licence.
@@ -20,8 +20,8 @@ Library classes target bytecode version 55 and depend only on
 SVG fixture comparisons use JSVG 2.2.0 in memory. TableTest 1.2.2 runs tabular
 cases on both supported JDKs. Spotless runs Prince of Space 2.3.0 and TableTest
 Formatter 1.1.2; Yumi Licenser 4.0.0 checks the source headers. Formatting was
-audited across 30 Java files for structure, literal values and TableTest cells,
-and 107 comments for content and order. A forced second pass was unchanged.
+audited across 32 Java files for structure, literal values and TableTest cells,
+and 120 comments for content and order. A forced second pass was unchanged.
 Configuration-cache reuse and licence repair are covered by Gradle TestKit.
 
 ## Publishing
@@ -51,6 +51,9 @@ arrowheads, contour traversal, dense notches, and dashed special shapes.
 New authored fixtures cover long interior and exterior stubs, duplicate routes
 between shared junctions, and one-cell-high compartments. They caught and verify
 fixes for an extra contour stroke and an invalid enclosing fill.
+Seven blog diagrams and two focused fixtures extend the normal matrix to tiny
+columns of compartments, marker-adjacent arrow shafts and larger nested ellipses.
+They verify enclosing-fill selection, shaft endpoints and float control-point rounding.
 The PNG oracle invokes the public raw-text API in an isolated JVM. This removes
 PlantUML preprocessing from the comparison and eliminates all 40 dimension
 mismatches. Both renderers receive identical input whitespace.

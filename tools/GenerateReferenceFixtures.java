@@ -14,7 +14,7 @@ import javax.imageio.ImageIO;
 import javax.tools.ToolProvider;
 
 /**
- * Generates golden images from project-authored inputs using the isolated reference binary.
+ * Generates golden images from fixture inputs using the isolated reference binary.
  */
 class GenerateReferenceFixtures {
   record Options(double scale, boolean shadows, boolean separation) {}
@@ -22,11 +22,11 @@ class GenerateReferenceFixtures {
   public static void main(String[] args) throws Exception {
     if (args.length < 2 || args.length > 4) {
       throw new IllegalArgumentException(
-          "PLANTUML_JAR DITAA_JAR [JAVA11_EXECUTABLE|current [FIXTURE]]"
+          "PLANTUML_JAR DITAA_JAR [JAVA11_EXECUTABLE|current [FIXTURE,...]]"
       );
     }
     boolean java11 = args.length >= 3 && !args[2].equals("current");
-    String selected = args.length == 4 ? args[3] : null;
+    List<String> selected = args.length == 4 ? List.of(args[3].split(",")) : null;
     String javaCommand =
         java11 ? args[2] : Path.of(System.getProperty("java.home"), "bin", "java").toString();
     Path oracle = Path.of(args[0]).toAbsolutePath();
@@ -53,7 +53,7 @@ class GenerateReferenceFixtures {
         java11 ? "java11" : "java25"
     ));
     Path outputs = java11 ? Files.createDirectories(fixtures.resolve("java11")) : fixtures;
-    String metadata = "# Project-authored inputs and reference renders use MPL-2.0.\n"
+    String metadata = "# Licences: MPL-2.0; blog-* CC-BY-SA-4.0 (BLOG-SOURCES.md).\n"
         + "oracle.version=PlantUML 1.2026.8\noracle.sha256="
         + hash
         + "\npng.api=raw-text\n"
@@ -93,13 +93,15 @@ class GenerateReferenceFixtures {
         .toList();
     }
     if (inputs.isEmpty()) {
-      throw new IllegalArgumentException("No authored fixtures found");
+      throw new IllegalArgumentException("No fixtures found");
     }
     if (selected != null) {
-      if (inputs
-        .stream()
-        .noneMatch(input -> input.getFileName().toString().equals(selected + ".ditaa"))) {
-        throw new IllegalArgumentException("No authored fixture named " + selected);
+      for (String name : selected) {
+        if (inputs
+          .stream()
+          .noneMatch(input -> input.getFileName().toString().equals(name + ".ditaa"))) {
+          throw new IllegalArgumentException("No fixture named " + name);
+        }
       }
       Path provenance = outputs.resolve("reference.properties");
       if (!Files.isRegularFile(provenance) || !Files.readString(provenance).equals(metadata)) {
@@ -156,7 +158,7 @@ class GenerateReferenceFixtures {
               + "\t"
               + settings.separation
           );
-          if (selected != null && !name.equals(selected)) {
+          if (selected != null && !selected.contains(name)) {
             continue;
           }
           generated++;
@@ -243,8 +245,6 @@ class GenerateReferenceFixtures {
       return;
     }
     Files.write(inputsDirectory.resolve("cases.tsv"), cases);
-    System.out.println(
-        "Generated " + generated + " PNG and SVG reference pairs from authored fixtures"
-    );
+    System.out.println("Generated " + generated + " PNG and SVG reference pairs");
   }
 }

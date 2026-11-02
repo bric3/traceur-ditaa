@@ -4,8 +4,9 @@
 [![Build](https://github.com/bric3/traceur-ditaa/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bric3/traceur-ditaa/actions/workflows/ci.yml)
 
 An independently implemented Java 11 library for rendering ditaa text as PNG
-and vector SVG. It is fully compatible with ditaa rendering and has no
-third-party runtime dependencies.
+and vector SVG, with no third-party runtime dependencies. Rendering is checked
+against ditaa and PlantUML reference images; compatibility covers the tested
+diagrams and options.
 
 Maven coordinates: `io.github.bric3.traceur:traceur-ditaa`. Use
 [Central's snapshot repository](https://central.sonatype.com/repository/maven-snapshots/)

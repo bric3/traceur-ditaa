@@ -444,15 +444,21 @@ final class DiagramParser {
     contours.addAll(enclosing.values());
     for (Region region : enclosing.values()) {
       // A contour that revisits a junction keeps its separate regions.
-      boolean nested = parts.getOrDefault(region.component, 0) > 1
-          && new HashSet<>(region.points).size() == region.points.size()
-          && contours
-            .stream()
-            .anyMatch(parent -> parent.component != region.component
-                && parent.gridPath.contains(region.points.get(0)));
+      boolean multipleParts = parts.getOrDefault(region.component, 0) > 1;
+      boolean nested = false;
+      if (multipleParts) {
+        Rectangle2D bounds = region.gridPath.getBounds2D();
+        // One-cell-wide or one-cell-high contours have no interior cell for an enclosing fill.
+        nested = bounds.getWidth() > 1
+            && bounds.getHeight() > 1
+            && new HashSet<>(region.points).size() == region.points.size()
+            && contours
+              .stream()
+              .anyMatch(parent -> parent.component != region.component
+                  && parent.gridPath.contains(region.points.get(0)));
+      }
       // An exterior fill seed retains the enclosing contour before its compartments.
-      boolean exteriorFill = parts.getOrDefault(region.component, 0) > 1
-          && region.fillsExterior();
+      boolean exteriorFill = multipleParts && region.fillsExterior();
       if (exteriorFill) {
         regions.add(0, region);
       } else if (covered.getOrDefault(region.component, 0.0) < region.area || nested) {
@@ -1370,6 +1376,15 @@ final class DiagramParser {
     Point2D.Double point = points.get(index);
     double x = cx(point.x), y = cy(point.y);
     char c = at((int) point.x, (int) point.y);
+    if (c == '*') {
+      Point2D.Double adjacent = points.get(index == 0 ? 1 : index - 1);
+      int ox = (int) point.x + (int) Math.signum(point.x - adjacent.x);
+      int oy = (int) point.y + (int) Math.signum(point.y - adjacent.y);
+      // A shaft continues through a marker to the arrowhead on its opposite side.
+      if ("<>^vV".indexOf(at(ox, oy)) >= 0) {
+        return new Point2D.Double(cx(ox), cy(oy));
+      }
+    }
     // A straight arm continues through an adjacent open corner or junction.
     if ((c == '+' || c == '*') && Integer.bitCount(links[(int) point.y][(int) point.x]) > 2) {
       Point2D.Double adjacent = points.get(index == 0 ? 1 : index - 1);
@@ -1566,14 +1581,17 @@ final class DiagramParser {
     }
     if (region.tag.equals("o")) {
       // Start at the top so dashed outlines retain their phase around the ellipse.
-      double mx = x + w / 2, my = y + h / 2;
-      double dx = w * .5522847498307933 / 2, dy = h * .5522847498307933 / 2;
+      float left = (float) x, top = (float) y, right = (float) (x + w), bottom = (float) (y + h);
+      float mx = (float) (x + w / 2), my = (float) (y + h / 2);
+      // Round the normalised control point before scaling its insets, preserving reference pixels.
+      float inset = 1 - (float) ((1 + .5522847498307933) / 2);
+      float ix = (float) w * inset, iy = (float) h * inset;
       Path2D.Float ellipse = new Path2D.Float();
-      ellipse.moveTo(mx, y);
-      ellipse.curveTo(mx + dx, y, x + w, my - dy, x + w, my);
-      ellipse.curveTo(x + w, my + dy, mx + dx, y + h, mx, y + h);
-      ellipse.curveTo(mx - dx, y + h, x, my + dy, x, my);
-      ellipse.curveTo(x, my - dy, mx - dx, y, mx, y);
+      ellipse.moveTo(mx, top);
+      ellipse.curveTo(right - ix, top, right, top + iy, right, my);
+      ellipse.curveTo(right, bottom - iy, right - ix, bottom, mx, bottom);
+      ellipse.curveTo(left + ix, bottom, left, bottom - iy, left, my);
+      ellipse.curveTo(left, top + iy, left + ix, top, mx, top);
       ellipse.closePath();
       return ellipse;
     }
@@ -1797,7 +1815,8 @@ final class DiagramParser {
           return !gridPath.contains(x, row);
         }
       }
-      return true;
+      // Without a free cell, the scan cannot seed a separate enclosing fill.
+      return false;
     }
   }
 }

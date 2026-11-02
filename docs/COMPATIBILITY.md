@@ -24,8 +24,10 @@ caller. Rendering never closes or flushes caller resources. The original
 
 ## Corpus comparison
 
-The normal build runs 1,847 tests on each JDK, including 1,584 exact image comparisons
-from 66 project-authored diagrams, three scales and all shadow/separation settings.
+The normal build runs 2,063 tests on each JDK, including 1,800 exact image comparisons
+from 68 project-authored diagrams and seven blog diagrams, three scales and all
+shadow/separation settings. Blog sources and licensing are recorded in
+[BLOG-SOURCES.md](../src/test/resources/compatibility/BLOG-SOURCES.md).
 PNG assertions compare every decoded pixel. SVG assertions rasterise both vectors
 in memory with JSVG 2.2.0 before comparing every pixel. These focused fixtures cover
 individual features; the external corpus below checks their combinations.
@@ -53,7 +55,7 @@ Each platform uses PNGs generated on the tested JDK and SVGs generated on Java 2
 The generator checks both reference binary checksums before writing fixtures.
 PNG fixtures use the same raw-text entry point as the corpus comparison, preserving
 leading blank rows and source whitespace.
-To regenerate one fixture, append its name after `current` or the Java 11
+To regenerate selected fixtures, append their comma-separated names after `current` or the Java 11
 executable. The recorded environment must match; otherwise regenerate the full
 matrix first.
 

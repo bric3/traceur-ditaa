@@ -1,0 +1,17 @@
+         process thread                                      process thread
+         executing                                           executing
+
+      ------------->|<-=------------ Idle --------=------>*---------------->
+                    |                                     ^
+                 syscall                                  |
+Ring 3              |                                     |
+User land           v                                     |
+----------=-------- *---* -=------------------------- *---* -=------------------
+Kernel                  |                             ^
+Ring 0                  v                             |
+                        *---------------------------->*
+                            kernal syscall executing
+                    <--->                             <--->
+
+                    Mode                              Mode
+                    Switch                            Switch

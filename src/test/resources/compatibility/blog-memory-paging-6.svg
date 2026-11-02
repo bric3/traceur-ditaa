@@ -1,0 +1,169 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<svg 
+    xmlns='http://www.w3.org/2000/svg'
+    width='462'
+    height='342'
+    shape-rendering='geometricPrecision'
+    version='1.0'>
+  <defs>
+    <filter id='f2' x='0' y='0' width='200%' height='200%'>
+      <feOffset result='offOut' in='SourceGraphic' dx='5' dy='5' />
+      <feGaussianBlur result='blurOut' in='offOut' stdDeviation='3' />
+      <feBlend in='SourceGraphic' in2='blurOut' mode='normal' />
+    </filter>
+  </defs>
+  <g stroke-width='1' stroke-linecap='square' stroke-linejoin='round'>
+    <rect x='0' y='0' width='462' height='342' style='fill: #ffffff'/>
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M122.0 256.0 L136.0 256.0 L136.0 319.0 L17.0 319.0 L17.0 256.0 L24.0 256.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M304.0 301.0 L304.0 319.0 L409.0 319.0 L409.0 256.0 L353.0 256.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M199.0 247.0 L199.0 297.0 Q199.0 301.0 203.0 301.0 L304.0 301.0 L304.0 301.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M122.0 238.0 L252.0 238.0 Q255.0 238.0 255.0 234.0 L255.0 220.0 L255.0 220.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M311.0 292.0 L311.0 310.0 L367.0 310.0 L367.0 292.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M179.0 194.0 L179.0 211.0 L239.0 211.0 L239.0 194.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M179.0 175.0 L179.0 191.0 L239.0 191.0 L239.0 175.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M326.0 175.0 L326.0 191.0 L381.0 191.0 L381.0 180.0 Q381.0 175.0 378.0 175.0 L326.4 175.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M326.0 194.0 L326.0 211.0 L378.0 211.0 Q381.0 211.0 381.0 207.0 L381.0 194.4 L381.0 194.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M304.0 301.0 L304.0 256.0 L339.0 256.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M242.0 175.0 L242.0 191.0 L281.0 191.0 L281.0 175.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M284.0 175.0 L284.0 191.0 L323.0 191.0 L323.0 175.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M242.0 194.0 L242.0 211.0 L281.0 211.0 L281.0 194.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M284.0 194.0 L284.0 211.0 L323.0 211.0 L323.0 194.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M120.0 175.0 L88.0 175.0 L88.0 191.0 L120.0 191.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M120.0 194.0 L88.0 194.0 L88.0 211.0 L120.0 211.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M151.0 194.0 L151.0 211.0 L176.0 211.0 L176.0 194.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M39.0 191.0 L39.0 175.0 L64.0 175.0 L64.0 191.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M148.0 194.0 L123.0 194.0 L123.0 211.0 L148.0 211.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M39.0 194.0 L39.0 211.0 L64.0 211.0 L64.0 194.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M123.0 175.0 L123.0 191.0 L148.0 191.0 L148.0 175.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M151.0 191.0 L151.0 175.0 L176.0 175.0 L176.0 191.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M248.0 166.0 L248.0 144.0 Q248.0 139.0 245.0 139.0 L210.0 139.0 L210.0 139.0 Q206.0 139.0 206.0 135.0 L206.0 130.0 L206.0 130.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M108.0 238.0 L84.0 238.0 Q80.0 238.0 80.0 243.0 L80.0 265.0 L80.0 265.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M346.0 166.0 L346.0 144.0 Q346.0 139.0 350.0 139.0 L385.0 139.0 L385.0 139.0 Q388.0 139.0 388.0 135.0 L388.0 130.0 L388.0 130.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M21.0 175.0 Q17.0 175.0 17.0 180.0 L17.0 191.0 L36.0 191.0 L36.0 175.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M36.0 194.0 L17.0 194.0 L17.0 207.0 Q17.0 211.0 21.0 211.0 L36.6 211.0 L36.0 211.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M94.0 130.0 L94.0 135.0 Q94.0 139.0 98.0 139.0 L126.0 139.0 L126.0 139.0 Q129.0 139.0 129.0 144.0 L129.0 166.0 L129.0 166.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M67.0 175.0 L67.0 191.0 L85.0 191.0 L85.0 175.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M85.0 194.0 L85.0 211.0 L67.0 211.0 L67.0 194.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M17.0 31.0 L17.0 49.0 L31.0 49.0 L31.0 31.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M143.0 49.0 L157.0 49.0 L157.0 31.0 L143.0 31.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M424.0 121.0 L437.0 121.0 L437.0 103.0 L424.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M17.0 103.0 L17.0 121.0 L29.0 121.0 L29.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M144.0 121.0 L155.0 121.0 L155.0 103.0 L144.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M169.0 103.0 L169.0 121.0 L158.0 121.0 L158.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M183.0 103.0 L172.0 103.0 L172.0 121.0 L183.0 121.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M186.0 103.0 L186.0 121.0 L197.0 121.0 L197.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M200.0 121.0 L211.0 121.0 L211.0 103.0 L200.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M214.0 121.0 L225.0 121.0 L225.0 103.0 L214.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M239.0 103.0 L228.0 103.0 L228.0 121.0 L239.0 121.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M242.0 103.0 L242.0 121.0 L253.0 121.0 L253.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M256.0 121.0 L267.0 121.0 L267.0 103.0 L256.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M281.0 103.0 L281.0 121.0 L270.0 121.0 L270.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M295.0 103.0 L284.0 103.0 L284.0 121.0 L295.0 121.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M298.0 103.0 L298.0 121.0 L309.0 121.0 L309.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M312.0 121.0 L323.0 121.0 L323.0 103.0 L312.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M326.0 121.0 L337.0 121.0 L337.0 103.0 L326.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M351.0 103.0 L340.0 103.0 L340.0 121.0 L351.0 121.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M354.0 103.0 L354.0 121.0 L365.0 121.0 L365.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M368.0 121.0 L379.0 121.0 L379.0 103.0 L368.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M393.0 103.0 L393.0 121.0 L382.0 121.0 L382.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M407.0 103.0 L396.0 103.0 L396.0 121.0 L407.0 121.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M410.0 103.0 L410.0 121.0 L421.0 121.0 L421.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M130.0 103.0 L130.0 121.0 L141.0 121.0 L141.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M32.0 121.0 L43.0 121.0 L43.0 103.0 L32.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M57.0 103.0 L57.0 121.0 L46.0 121.0 L46.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M71.0 103.0 L60.0 103.0 L60.0 121.0 L71.0 121.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M74.0 103.0 L74.0 121.0 L85.0 121.0 L85.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M88.0 121.0 L99.0 121.0 L99.0 103.0 L88.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M102.0 121.0 L113.0 121.0 L113.0 103.0 L102.0 103.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M127.0 103.0 L116.0 103.0 L116.0 121.0 L127.0 121.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M129.0 220.0 L129.0 225.0 Q129.0 229.0 126.0 229.0 L119.0 229.0 L119.0 229.0 Q115.0 229.0 115.0 234.0 L115.0 265.0 L115.0 265.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M178.0 130.0 L178.0 135.0 Q178.0 139.0 175.0 139.0 L161.0 139.0 L161.0 139.0 Q157.0 139.0 157.0 144.0 L157.0 166.0 L157.0 166.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M45.0 166.0 L45.0 144.0 Q45.0 139.0 42.0 139.0 L42.0 139.0 L42.0 139.0 Q38.0 139.0 38.0 135.0 L38.0 130.0 L38.0 130.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M66.0 130.0 L66.0 135.0 Q66.0 139.0 70.0 139.0 L70.0 139.0 L70.0 139.0 Q73.0 139.0 73.0 144.0 L73.0 166.0 L73.0 166.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M101.0 274.0 L101.0 281.0 L94.0 281.0 L94.0 274.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M94.0 302.0 L94.0 310.0 L101.0 310.0 L101.0 302.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M59.0 274.0 L59.0 281.0 L52.0 281.0 L52.0 274.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M52.0 310.0 L52.0 302.0 L59.0 302.0 L59.0 310.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M73.0 274.0 L73.0 281.0 L80.0 281.0 L80.0 274.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M73.0 310.0 L80.0 310.0 L80.0 302.0 L73.0 302.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M31.0 274.0 L31.0 281.0 L38.0 281.0 L38.0 274.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M38.0 302.0 L31.0 302.0 L31.0 310.0 L38.0 310.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M115.0 274.0 L115.0 281.0 L122.0 281.0 L122.0 274.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M122.0 302.0 L115.0 302.0 L115.0 310.0 L122.0 310.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M101.0 284.0 L94.0 284.0 L94.0 290.0 L101.0 290.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M94.0 299.0 L94.0 293.0 L101.0 293.0 L101.0 299.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M59.0 284.0 L59.0 290.0 L52.0 290.0 L52.0 284.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M52.0 299.0 L52.0 293.0 L59.0 293.0 L59.0 299.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M80.0 284.0 L73.0 284.0 L73.0 290.0 L80.0 290.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M73.0 293.0 L73.0 299.0 L80.0 299.0 L80.0 293.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M31.0 290.0 L38.0 290.0 L38.0 284.0 L31.0 284.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M31.0 293.0 L31.0 299.0 L38.0 299.0 L38.0 293.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M115.0 290.0 L122.0 290.0 L122.0 284.0 L115.0 284.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='white' d='M115.0 293.0 L115.0 299.0 L122.0 299.0 L122.0 293.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M28.0 63.0 L21.0 67.0 L28.0 72.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M427.0 63.0 L434.0 67.0 L427.0 72.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M28.0 72.0 L21.0 76.0 L28.0 81.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M357.0 72.0 L364.0 76.0 L357.0 81.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M28.0 81.0 L21.0 85.0 L28.0 90.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M259.0 81.0 L266.0 85.0 L259.0 90.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M21.0 162.0 L24.0 171.0 L28.0 162.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M42.0 162.0 L45.0 171.0 L49.0 162.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M70.0 162.0 L73.0 171.0 L77.0 162.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M126.0 162.0 L129.0 171.0 L133.0 162.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M154.0 162.0 L157.0 171.0 L161.0 162.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M245.0 162.0 L248.0 171.0 L252.0 162.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M343.0 162.0 L346.0 171.0 L350.0 162.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M364.0 162.0 L367.0 171.0 L371.0 162.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M28.0 261.0 L31.0 270.0 L35.0 261.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M77.0 261.0 L80.0 270.0 L84.0 261.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M112.0 261.0 L115.0 270.0 L119.0 261.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M343.0 279.0 L346.0 288.0 L350.0 279.0 z' />
+    <path stroke='none' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='#000000' d='M301.0 297.0 L308.0 301.0 L301.0 306.0 z' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M38.0 67.0 L24.0 67.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M24.0 76.0 L38.0 76.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M38.0 85.0 L24.0 85.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M199.0 220.0 L199.0 229.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M24.0 166.0 L24.0 130.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M150.0 76.0 L360.0 76.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M143.0 67.0 L430.0 67.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M262.0 85.0 L157.0 85.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M31.0 265.0 L31.0 220.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M73.0 256.0 L38.0 256.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M87.0 256.0 L108.0 256.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M367.0 166.0 L367.0 153.0 Q367.0 148.0 371.0 148.0 L427.0 148.0 L427.0 148.0 Q430.0 148.0 430.0 144.0 L430.0 130.0 L430.0 130.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M346.0 220.0 L346.0 283.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M367.0 76.0 L367.0 103.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M17.0 67.0 L17.0 103.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M269.0 103.0 L269.0 85.0 ' />
+    <path stroke='#000000' stroke-width='0.700000' stroke-dasharray='3.000000,3.000000' stroke-miterlimit='0' stroke-linecap='butt' stroke-linejoin='round' fill='white' d='M437.0 103.0 L437.0 67.0 ' />
+    <text x='42' y='71' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[virtual memory]]></text>
+    <text x='42' y='80' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[reserved memory]]></text>
+    <text x='42' y='89' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[committed memory]]></text>
+    <text x='42' y='35' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[touched/used]]></text>
+    <text x='42' y='44' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[page]]></text>
+    <text x='156' y='188' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[50]]></text>
+    <text x='129' y='206' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[2 ]]></text>
+    <text x='128' y='188' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[40]]></text>
+    <text x='189' y='188' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[...]]></text>
+    <text x='189' y='206' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[...]]></text>
+    <text x='318' y='305' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[swap]]></text>
+    <text x='44' y='206' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[50]]></text>
+    <text x='45' y='188' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[1 ]]></text>
+    <text x='24' y='206' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[9 ]]></text>
+    <text x='24' y='188' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[0 ]]></text>
+    <text x='168' y='35' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[untouched/unused]]></text>
+    <text x='168' y='44' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[page]]></text>
+    <text x='98' y='206' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[...]]></text>
+    <text x='98' y='188' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[...]]></text>
+    <text x='73' y='206' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[7 ]]></text>
+    <text x='425' y='323' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[Disk]]></text>
+    <text x='73' y='188' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[2 ]]></text>
+    <text x='336' y='188' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[...]]></text>
+    <text x='392' y='197' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[MMU]]></text>
+    <text x='249' y='188' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[1000]]></text>
+    <text x='249' y='206' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[6000]]></text>
+    <text x='148' y='323' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[RAM]]></text>
+    <text x='291' y='188' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[2000]]></text>
+    <text x='291' y='206' font-family='Courier' font-size='8' stroke='none' fill='#000000' ><![CDATA[6001]]></text>
+  </g>
+</svg>
