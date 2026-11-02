@@ -302,8 +302,12 @@ final class DiagramParser {
     }
 
     // Draw each remaining connector as a continuous path so dash phase spans cells.
-    prepareConnectorStyles(boundary);
+    List<Integer> orderedConnectors = prepareConnectors(boundary);
     Set<Long> drawn = new HashSet<>(boundary);
+    for (int seed : orderedConnectors) {
+      int cell = seed / 4;
+      connectors(cell % width, cell / width, boundary, drawn, drawing, 1 << (seed % 4));
+    }
     for (int y = 0; y < height; y++)
       for (int x = 0; x < width; x++) {
         if (Integer.bitCount(links[y][x]) != 2 || "<>^vV".indexOf(at(x, y)) >= 0)
@@ -478,7 +482,10 @@ final class DiagramParser {
     return result;
   }
 
-  private void prepareConnectorStyles(Set<Long> boundary) {
+  private List<Integer> prepareConnectors(Set<Long> boundary) {
+    // Seeds encode a starting cell and direction as cell * 4 + direction.
+    List<Integer> ordered = new ArrayList<>();
+    Set<Long> visited = new HashSet<>(boundary);
     // Arrows and closed boundary cells separate the groups that share a dash style.
     boolean[][] anchors = new boolean[height][width];
     for (int y = 0; y < height; y++)
@@ -513,7 +520,75 @@ final class DiagramParser {
         if (dashed)
           for (int cell : cells)
             connectorStyles[cell / width][cell % width] = cells.size() == 1 ? HIDDEN : DASHED;
+        orderConnectors(cells, anchors, visited, ordered);
       }
+    return ordered;
+  }
+
+  private void orderConnectors(
+      List<Integer> cells, boolean[][] anchors, Set<Long> visited, List<Integer> ordered) {
+    // Endpoint buckets determine the first stroke and its dash phase.
+    int capacity = 16;
+    while (cells.size() > capacity * .75) capacity *= 2;
+    int root = -1, firstBucket = Integer.MAX_VALUE;
+    for (int cell : cells) {
+      int x = cell % width, y = cell / width, neighbours = 0;
+      for (int d = 0; d < 4; d++)
+        if ((links[y][x] & (1 << d)) != 0 && !anchors[y + DY[d]][x + DX[d]]) neighbours++;
+      if (neighbours > 1) continue;
+      int bucket = boundaryBucket(x, y, capacity);
+      if (bucket < firstBucket || bucket == firstBucket && cell < root) {
+        root = cell;
+        firstBucket = bucket;
+      }
+    }
+    if (root < 0) root = cells.get(0);
+    int mask = 15;
+    for (int d : connectorDirections(root)) {
+      int x = root % width, y = root / width, nx = x + DX[d], ny = y + DY[d];
+      if ((links[y][x] & (1 << d)) != 0
+          && anchors[ny][nx]
+          && !visited.contains(edge(x, y, nx, ny))) {
+        root = ny * width + nx;
+        mask = 1 << ((d + 2) % 4);
+        break;
+      }
+    }
+    ArrayDeque<ConnectorVisit> pending = new ArrayDeque<>();
+    pending.push(new ConnectorVisit(root, -1, mask));
+    while (!pending.isEmpty()) {
+      ConnectorVisit visit = pending.peek();
+      if (visit.next == 4) {
+        // Draw the incoming path after visiting the branches at its far end.
+        pending.pop();
+        if (visit.incoming >= 0) ordered.add(visit.incoming);
+        continue;
+      }
+      int d = visit.directions[visit.next++], x = visit.cell % width, y = visit.cell / width;
+      if ((visit.mask & links[y][x] & (1 << d)) == 0
+          || visited.contains(edge(x, y, x + DX[d], y + DY[d]))) continue;
+      int seed = visit.cell * 4 + d;
+      do {
+        int nx = x + DX[d], ny = y + DY[d];
+        if (!visited.add(edge(x, y, nx, ny))) break;
+        x = nx;
+        y = ny;
+        if (anchors[y][x] || Integer.bitCount(links[y][x]) != 2) break;
+        d = Integer.numberOfTrailingZeros(links[y][x] & ~(1 << ((d + 2) % 4)));
+      } while (true);
+      if (anchors[y][x]) ordered.add(seed);
+      else pending.push(new ConnectorVisit(y * width + x, seed, 15));
+    }
+  }
+
+  private Integer[] connectorDirections(int cell) {
+    // Neighbour sets use 16 buckets and prefer vertical cells when buckets tie.
+    Integer[] directions = {1, 3, 0, 2};
+    Arrays.sort(
+        directions,
+        Comparator.comparingInt(
+            d -> boundaryBucket(cell % width + DX[d], cell / width + DY[d], 16)));
+    return directions;
   }
 
   private void removePlusEnds() {
@@ -589,8 +664,13 @@ final class DiagramParser {
   }
 
   private void connectors(int x, int y, Set<Long> boundary, Set<Long> drawn, Drawing drawing) {
+    connectors(x, y, boundary, drawn, drawing, 15);
+  }
+
+  private void connectors(
+      int x, int y, Set<Long> boundary, Set<Long> drawn, Drawing drawing, int mask) {
     for (int direction = 0; direction < 4; direction++) {
-      if ((links[y][x] & (1 << direction)) == 0) continue;
+      if ((links[y][x] & mask & (1 << direction)) == 0) continue;
       int nx = x + DX[direction], ny = y + DY[direction];
       if (drawn.contains(edge(x, y, nx, ny))) continue;
       List<Point2D.Double> points = new ArrayList<>();
@@ -613,15 +693,6 @@ final class DiagramParser {
         d = Integer.numberOfTrailingZeros(remaining);
       } while (true);
       if (hidden) continue;
-      if (Integer.bitCount(links[y][x]) == 1 && Integer.bitCount(links[ny][nx]) == 1) {
-        // The reference starts dashes at the first endpoint in its padded grid hash order.
-        int capacity = 16;
-        while (points.size() > capacity * .75) capacity *= 2;
-        int first = (((x + 2) << 16) | (y + 2));
-        int last = (((nx + 2) << 16) | (ny + 2));
-        if (((last ^ (last >>> 16)) & (capacity - 1)) < ((first ^ (first >>> 16)) & (capacity - 1)))
-          Collections.reverse(points);
-      }
       Path2D.Double path = new Path2D.Double();
       Point2D.Double startPosition = connectorEndpoint(points, 0, boundary);
       path.moveTo(startPosition.x, startPosition.y);
@@ -855,7 +926,11 @@ final class DiagramParser {
   }
 
   private static int boundaryBucket(Point2D.Double point, int capacity) {
-    int hash = (((int) point.x + 2) << 16) | ((int) point.y + 2);
+    return boundaryBucket((int) point.x, (int) point.y, capacity);
+  }
+
+  private static int boundaryBucket(int x, int y, int capacity) {
+    int hash = ((x + 2) << 16) | (y + 2);
     return (hash ^ (hash >>> 16)) & (capacity - 1);
   }
 
@@ -914,6 +989,21 @@ final class DiagramParser {
       default:
         int rgb = Integer.parseInt(code, 16);
         return new Color(((rgb >> 8) & 15) * 17, ((rgb >> 4) & 15) * 17, (rgb & 15) * 17);
+    }
+  }
+
+  private final class ConnectorVisit {
+    final int cell;
+    final int incoming;
+    final int mask;
+    final Integer[] directions;
+    int next;
+
+    ConnectorVisit(int cell, int incoming, int mask) {
+      this.cell = cell;
+      this.incoming = incoming;
+      this.mask = mask;
+      directions = connectorDirections(cell);
     }
   }
 
