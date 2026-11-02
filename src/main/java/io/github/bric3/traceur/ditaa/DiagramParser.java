@@ -939,6 +939,7 @@ final class DiagramParser {
         }
       }
       renderCorners.add(new Point2D.Float((float) x, (float) y));
+      double rawX = x, rawY = y;
       // Text contrast uses the boundary polygon before corner and shape transforms.
       if (i == 0) region.textBackground.moveTo(x, y);
       else region.textBackground.lineTo(x, y);
@@ -958,7 +959,13 @@ final class DiagramParser {
                 : cy(point.y) + cellBoundaryOffset(previous.y - point.y, cellHeight);
       }
       if (i == 0) path.moveTo(ix, iy);
-      else path.lineTo(ix, iy);
+      else {
+        char previousMarker = at((int) previous.x, (int) previous.y);
+        // The first curve joins directly; later curves visit the fractional next corner.
+        if (i > 1 && !rounded && (previousMarker == '/' || previousMarker == '\\'))
+          path.lineTo(rawX, rawY);
+        path.lineTo(ix, iy);
+      }
       if (rounded)
         path.quadTo(
             x,
@@ -966,6 +973,13 @@ final class DiagramParser {
             next.x == point.x ? x : cx(point.x) + cellBoundaryOffset(next.x - point.x, cellWidth),
             next.y == point.y ? y : cy(point.y) + cellBoundaryOffset(next.y - point.y, cellHeight));
     }
+    Point2D.Double firstPoint = p.get(corners.get(0)),
+        lastPoint = p.get(corners.get(corners.size() - 1));
+    char firstMarker = at((int) firstPoint.x, (int) firstPoint.y),
+        lastMarker = at((int) lastPoint.x, (int) lastPoint.y);
+    // A closing curve visits the fractional first corner before closing the integer path.
+    if (firstMarker != '/' && firstMarker != '\\' && (lastMarker == '/' || lastMarker == '\\'))
+      path.lineTo(renderCorners.get(0).x, renderCorners.get(0).y);
     path.closePath();
     region.textBackground.closePath();
     // Sort before integer path rounding; fractional shared edges can change equal-area ties.
