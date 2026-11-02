@@ -19,6 +19,45 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class RegionGeometryTest {
   @ParameterizedTest
+  @CsvSource({"0, 2", "1, 1", "2, 1"})
+  void arrowheadsCannotCloseARegion(int layout, int arrows) throws IOException {
+    var drawing = DiagramParser.parse(layout("arrow-regions", 5, layout), RenderOptions.DEFAULT);
+    assertEquals(
+        arrows,
+        drawing.figures.stream()
+            .filter(figure -> figure.kind == Drawing.Figure.Kind.ARROW)
+            .count());
+    assertTrue(
+        drawing.figures.stream().noneMatch(figure -> figure.kind == Drawing.Figure.Kind.REGION));
+    assertTrue(drawing.figures.stream().noneMatch(figure -> figure.shadow));
+    assertTrue(drawing.labels.isEmpty());
+  }
+
+  @Test
+  void anOutgoingArrowKeepsTheFrameClosed() throws IOException {
+    var drawing = DiagramParser.parse(layout("arrow-regions", 5, 3), RenderOptions.DEFAULT);
+    assertEquals(
+        1,
+        drawing.figures.stream()
+            .filter(figure -> figure.kind == Drawing.Figure.Kind.REGION)
+            .count());
+    assertEquals(
+        1,
+        drawing.figures.stream()
+            .filter(figure -> figure.kind == Drawing.Figure.Kind.ARROW)
+            .count());
+  }
+
+  @Test
+  void aVerticalInlineLetterKeepsTheFrameClosed() throws IOException {
+    var drawing = DiagramParser.parse(layout("arrow-regions", 5, 4), RenderOptions.DEFAULT);
+    assertEquals(1, drawing.figures.size());
+    assertEquals(Drawing.Figure.Kind.REGION, drawing.figures.get(0).kind);
+    assertTrue(drawing.figures.get(0).shadow);
+    assertTrue(drawing.labels.isEmpty());
+  }
+
+  @ParameterizedTest
   @CsvSource({"0, 2", "1, 2", "3, 3", "5, 5"})
   void adjacentClosedCornersRetainTheirRegions(int layout, int expected) throws IOException {
     var drawing =

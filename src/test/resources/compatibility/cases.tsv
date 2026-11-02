@@ -1,4 +1,16 @@
 name	variant	scale	shadows	separation
+arrow-regions	0	1.0	true	true
+arrow-regions	1	1.0	true	false
+arrow-regions	2	1.0	false	true
+arrow-regions	3	1.0	false	false
+arrow-regions	4	0.7	true	true
+arrow-regions	5	0.7	true	false
+arrow-regions	6	0.7	false	true
+arrow-regions	7	0.7	false	false
+arrow-regions	8	2.0	true	true
+arrow-regions	9	2.0	true	false
+arrow-regions	10	2.0	false	true
+arrow-regions	11	2.0	false	false
 black	0	1.0	true	true
 black	1	1.0	true	false
 black	2	1.0	false	true

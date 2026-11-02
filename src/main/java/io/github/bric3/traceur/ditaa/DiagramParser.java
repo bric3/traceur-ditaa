@@ -200,17 +200,18 @@ final class DiagramParser {
         }
       }
     removePlusEnds();
+    int[][] regionLinks = regionLinks();
     // A half-edge walk keeps the bounded regions separate when boxes share boundaries.
     boolean[][][] visited = new boolean[height][width][4];
     List<Region> regions = new ArrayList<>();
     Map<Integer, Region> enclosing = new HashMap<>();
-    int[][] components = components();
+    int[][] components = components(regionLinks);
     Set<Long> boundary = new HashSet<>();
     Set<Long> sharedEdges = new HashSet<>();
     for (int y = 0; y < height; y++)
       for (int x = 0; x < width; x++) {
         for (int d = 0; d < 4; d++) {
-          if ((links[y][x] & (1 << d)) == 0 || visited[y][x][d]) continue;
+          if ((regionLinks[y][x] & (1 << d)) == 0 || visited[y][x][d]) continue;
           List<Point2D.Double> points = new ArrayList<>();
           List<Long> edges = new ArrayList<>();
           int px = x, py = y, direction = d;
@@ -223,7 +224,7 @@ final class DiagramParser {
             int next = reverse;
             for (int turn = 1; turn <= 4; turn++) {
               int candidate = (reverse + 4 - turn) % 4;
-              if ((links[ny][nx] & (1 << candidate)) != 0) {
+              if ((regionLinks[ny][nx] & (1 << candidate)) != 0) {
                 next = candidate;
                 break;
               }
@@ -483,12 +484,26 @@ final class DiagramParser {
     }
   }
 
-  private int[][] components() {
+  private int[][] regionLinks() {
+    // Arrowheads terminate shafts and cannot close a region.
+    int[][] result = new int[height][];
+    for (int y = 0; y < height; y++) result[y] = links[y].clone();
+    for (int y = 0; y < height; y++)
+      for (int x = 0; x < width; x++) {
+        if ("<>^vV".indexOf(at(x, y)) < 0) continue;
+        for (int d = 0; d < 4; d++)
+          if ((links[y][x] & (1 << d)) != 0) result[y + DY[d]][x + DX[d]] &= ~(1 << ((d + 2) % 4));
+        result[y][x] = 0;
+      }
+    return result;
+  }
+
+  private int[][] components(int[][] connections) {
     int[][] result = new int[height][width];
     int id = 0;
     for (int y = 0; y < height; y++)
       for (int x = 0; x < width; x++) {
-        if (links[y][x] == 0 || result[y][x] != 0) continue;
+        if (connections[y][x] == 0 || result[y][x] != 0) continue;
         ArrayDeque<Integer> pending = new ArrayDeque<>();
         pending.add(y * width + x);
         result[y][x] = ++id;
@@ -496,7 +511,7 @@ final class DiagramParser {
           int cell = pending.removeFirst(), cx = cell % width, cy = cell / width;
           for (int d = 0; d < 4; d++) {
             int nx = cx + DX[d], ny = cy + DY[d];
-            if ((links[cy][cx] & (1 << d)) == 0 || result[ny][nx] != 0) continue;
+            if ((connections[cy][cx] & (1 << d)) == 0 || result[ny][nx] != 0) continue;
             result[ny][nx] = id;
             pending.add(ny * width + nx);
           }
