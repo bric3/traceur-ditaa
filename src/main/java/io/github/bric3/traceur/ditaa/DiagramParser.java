@@ -291,6 +291,7 @@ final class DiagramParser {
       for (long edge : region.edges) {
         if (!boundary.add(edge)) sharedEdges.add(edge);
       }
+    orderRegions(regions, components);
     List<Region> shadowOrder = new ArrayList<>(regions);
     regions.sort(Comparator.comparingDouble((Region r) -> r.area).reversed());
     for (int y = 0; y < height; y++) {
@@ -495,6 +496,57 @@ final class DiagramParser {
         result[y][x] = 0;
       }
     return result;
+  }
+
+  private void orderRegions(List<Region> regions, int[][] components) {
+    // Equal-area regions retain the boundary raster's discovery order.
+    if (regions.size() < 2) return;
+    int pixels = 0, largestComponent = 0;
+    for (int y = 0; y < height; y++)
+      for (int x = 0; x < width; x++) {
+        int mask = rasterDirections(x, y);
+        if (mask != 0) pixels += 1 + Integer.bitCount(mask);
+        largestComponent = Math.max(largestComponent, components[y][x]);
+      }
+    int capacity = 16;
+    while (pixels > capacity * .75) capacity *= 2;
+    long[] first = new long[largestComponent + 1];
+    Arrays.fill(first, Long.MAX_VALUE);
+    for (int y = 0; y < height; y++)
+      for (int x = 0; x < width; x++) {
+        int component = components[y][x];
+        if (component == 0) continue;
+        int mask = rasterDirections(x, y);
+        int rx = (x + 2) * 3 + 1, ry = (y + 2) * 3 + 1;
+        long priority = rasterPriority(rx, ry, capacity);
+        for (int d = 0; d < 4; d++)
+          if ((mask & (1 << d)) != 0)
+            priority = Math.min(priority, rasterPriority(rx + DX[d], ry + DY[d], capacity));
+        first[component] = Math.min(first[component], priority);
+      }
+    regions.sort(Comparator.comparingLong(region -> first[region.component]));
+  }
+
+  private int rasterDirections(int x, int y) {
+    switch (at(x, y)) {
+      case '-':
+      case '=':
+        return 5;
+      case '|':
+      case ':':
+        return 10;
+      case '+':
+      case '*':
+      case '/':
+      case '\\':
+        return links[y][x];
+      default:
+        return 0;
+    }
+  }
+
+  private long rasterPriority(int x, int y, int capacity) {
+    return ((long) cellBucket(x, y, capacity) << 32) | ((long) y * (width + 4) * 3 + x);
   }
 
   private int[][] components(int[][] connections) {
@@ -987,7 +1039,11 @@ final class DiagramParser {
   }
 
   private static int boundaryBucket(int x, int y, int capacity) {
-    int hash = ((x + 2) << 16) | (y + 2);
+    return cellBucket(x + 2, y + 2, capacity);
+  }
+
+  private static int cellBucket(int x, int y, int capacity) {
+    int hash = (x << 16) | y;
     return (hash ^ (hash >>> 16)) & (capacity - 1);
   }
 
