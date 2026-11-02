@@ -191,6 +191,8 @@ final class DiagramParser {
     // A half-edge walk keeps the bounded regions separate when boxes share boundaries.
     boolean[][][] visited = new boolean[height][width][4];
     List<Region> regions = new ArrayList<>();
+    Map<Integer, Region> enclosing = new HashMap<>();
+    int[][] components = components();
     Set<Long> boundary = new HashSet<>();
     Set<Long> sharedEdges = new HashSet<>();
     for (int y = 0; y < height; y++)
@@ -223,7 +225,7 @@ final class DiagramParser {
             Point2D.Double a = points.get(i), b = points.get((i + 1) % points.size());
             area += a.x * b.y - b.x * a.y;
           }
-          if (area > 0) {
+          if (area != 0) {
             // A bridge is visited in both directions; it remains an independent connector.
             Set<Long> faceEdges = new HashSet<>();
             Set<Long> bridges = new HashSet<>();
@@ -235,13 +237,30 @@ final class DiagramParser {
               char start = at(a % width, a / width), end = at(b % width, b / width);
               dashed |= start == '=' || start == ':' || end == '=' || end == ':';
             }
-            Region region = new Region(points, area, dashed);
-            regions.add(region);
-            for (long edge : faceEdges) {
-              if (!boundary.add(edge)) sharedEdges.add(edge);
-            }
+            if (area < 0 && !bridges.isEmpty()) continue;
+            if (area < 0) Collections.reverse(points);
+            Region region =
+                new Region(
+                    points,
+                    Math.abs(area),
+                    dashed,
+                    components[y][x],
+                    faceEdges,
+                    !bridges.isEmpty());
+            if (area > 0) regions.add(region);
+            else enclosing.put(region.component, region);
           }
         }
+      }
+    // An inward branch opens a compartment when its enclosing boundary remains closed.
+    regions.removeIf(region -> region.branched && enclosing.containsKey(region.component));
+    Map<Integer, Double> covered = new HashMap<>();
+    for (Region region : regions) covered.merge(region.component, region.area, Double::sum);
+    for (Region region : enclosing.values())
+      if (covered.getOrDefault(region.component, 0.0) < region.area) regions.add(region);
+    for (Region region : regions)
+      for (long edge : region.edges) {
+        if (!boundary.add(edge)) sharedEdges.add(edge);
       }
     regions.sort(Comparator.comparingDouble((Region r) -> r.area).reversed());
     for (int y = 0; y < height; y++) {
@@ -413,6 +432,28 @@ final class DiagramParser {
         drawing.labels.add(positioned);
       }
     }
+  }
+
+  private int[][] components() {
+    int[][] result = new int[height][width];
+    int id = 0;
+    for (int y = 0; y < height; y++)
+      for (int x = 0; x < width; x++) {
+        if (links[y][x] == 0 || result[y][x] != 0) continue;
+        ArrayDeque<Integer> pending = new ArrayDeque<>();
+        pending.add(y * width + x);
+        result[y][x] = ++id;
+        while (!pending.isEmpty()) {
+          int cell = pending.removeFirst(), cx = cell % width, cy = cell / width;
+          for (int d = 0; d < 4; d++) {
+            int nx = cx + DX[d], ny = cy + DY[d];
+            if ((links[cy][cx] & (1 << d)) == 0 || result[ny][nx] != 0) continue;
+            result[ny][nx] = id;
+            pending.add(ny * width + nx);
+          }
+        }
+      }
+    return result;
   }
 
   private void prepareConnectorStyles(Set<Long> boundary) {
@@ -844,15 +885,27 @@ final class DiagramParser {
     final Path2D.Double gridPath = new Path2D.Double();
     final double area;
     final boolean dashed;
+    final int component;
+    final Set<Long> edges;
+    final boolean branched;
     Color colour = Color.WHITE;
     String tag = "";
     Shape shape;
     double renderArea;
 
-    Region(List<Point2D.Double> points, double area, boolean dashed) {
+    Region(
+        List<Point2D.Double> points,
+        double area,
+        boolean dashed,
+        int component,
+        Set<Long> edges,
+        boolean branched) {
       this.points = points;
       this.area = area;
       this.dashed = dashed;
+      this.component = component;
+      this.edges = edges;
+      this.branched = branched;
       gridPath.moveTo(points.get(0).x, points.get(0).y);
       for (int i = 1; i < points.size(); i++) gridPath.lineTo(points.get(i).x, points.get(i).y);
       gridPath.closePath();
