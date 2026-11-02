@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 
 final class DiagramParser {
   private static final int MAX_CELLS = 250_000;
+  static final int MAX_INPUT_CHARS = MAX_CELLS * 4;
   private static final long MAX_PIXELS = 25_000_000;
   private static final byte SOLID = 1;
   private static final byte DASHED = 2;
@@ -65,7 +66,7 @@ final class DiagramParser {
   }
 
   static Drawing parse(String text, RenderOptions options) {
-    if (text.length() > MAX_CELLS * 4) {
+    if (text.length() > MAX_INPUT_CHARS) {
       throw new IllegalArgumentException("Diagram exceeds input size limit");
     }
     List<String> lines = new ArrayList<>();

@@ -50,8 +50,7 @@ class ReferenceRenderingTest {
       .render(
           DiagramFixtures.text(name),
           new RenderOptions(scale, shadows, separation),
-          OutputFormat.PNG,
-          output
+          RenderTarget.png(output)
       );
     var actual = ImageIO.read(new ByteArrayInputStream(output.toByteArray()));
     String runtime = Runtime.version().feature() == 11 ? "java11/" : "";
@@ -80,8 +79,7 @@ class ReferenceRenderingTest {
       .render(
           DiagramFixtures.text(name),
           new RenderOptions(scale, shadows, separation),
-          OutputFormat.SVG,
-          output
+          RenderTarget.svg(output)
       );
     byte[] svg = output.toByteArray();
     var document = SvgEncodingTest.parse(svg);

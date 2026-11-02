@@ -15,8 +15,8 @@ for `-SNAPSHOT` versions.
 
 ```java
 import io.github.bric3.traceur.ditaa.DitaaRenderer;
-import io.github.bric3.traceur.ditaa.OutputFormat;
 import io.github.bric3.traceur.ditaa.RenderOptions;
+import io.github.bric3.traceur.ditaa.RenderTarget;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -24,15 +24,18 @@ String diagram = String.join("\n", "+-----+", "| Box |", "+-----+");
 
 try (var output = Files.newOutputStream(Path.of("box.svg"))) {
     var size = new DitaaRenderer().render(
-            diagram, RenderOptions.DEFAULT, OutputFormat.SVG, output);
+            diagram, RenderOptions.DEFAULT, RenderTarget.svg(output));
     System.out.println(size.width() + " x " + size.height());
 }
 ```
 
 Pass raw diagram text. The caller handles PlantUML preprocessing and
-`@startditaa`/`@endditaa`, and closes the output stream. `RenderOptions` controls
+`@startditaa`/`@endditaa`. Input can be a `String` or `Reader`; use an
+`InputStreamReader` to choose input decoding. The caller owns buffering, flushing
+and closing. `RenderOptions` controls
 scale, shadows, and shared-edge separation; defaults are `1`, `true`, and `true`.
-Use `OutputFormat.PNG` for raster output. Renderer instances are thread-safe.
+Use `RenderTarget.png(OutputStream)` for raster output. SVG targets accept an
+`OutputStream` (UTF-8) or `Writer`. Renderer instances are thread-safe.
 
 The library requires the JDK's `java.base` and `java.desktop` modules. There is no
 public CLI or binary compatibility with ditaa's Java classes.

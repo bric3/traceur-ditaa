@@ -5,12 +5,14 @@ Every pinned corpus comparison passes.
 
 ## Build
 
-All 3,658 renderer tests pass across Java 11 and Java 25 on macOS, along with
-20 build-logic checks. The same 1,829 renderer tests pass on each JDK in isolated
+All 3,694 renderer tests pass across Java 11 and Java 25 on macOS, along with
+20 build-logic checks. The same 1,847 renderer tests pass on each JDK in isolated
 Linux containers. The suite includes 1,584 exact PNG/SVG
 comparisons of project-authored fixtures. It covers encoding, shapes, connectors,
 options, text, allocation limits, unavailable PNG encoders, write failures and
-concurrent rendering. Renderer coverage is 99.3% of lines and 97.5% of branches,
+concurrent rendering. Stream API checks cover reader limits, UTF-8 and caller-selected
+encoding, resource ownership, caller-controlled buffering, and read/write failures.
+Renderer coverage is 99.2% of lines and 97.5% of branches,
 with no exclusions. `check` requires at least 99% line and 97% branch coverage.
 Library classes target bytecode version 55 and depend only on
 `java.base` and `java.desktop`. Release JARs include the MPL-2.0 licence.

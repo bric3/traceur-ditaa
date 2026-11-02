@@ -13,11 +13,18 @@ the authored fixture matrix below.
 Tabs expand to eight-column stops; CRLF and CR become LF. Empty input produces a
 blank image. Rendering rejects invalid text characters and scales, oversized
 input, grids above 250,000 cells, dimensions above 32,768 pixels, and images above
-25 million pixels. Write failures propagate to the caller.
+25 million pixels. Read and write failures propagate to the caller.
+
+`DitaaRenderer.render` accepts a `String` or `Reader` and a `RenderTarget`.
+Reader input is limited to 1,000,000 UTF-16 code units while reading, then parsed
+before output starts. PNG targets accept an `OutputStream`; SVG targets accept
+an `OutputStream` encoded as UTF-8 or a `Writer` whose encoding belongs to the
+caller. Rendering never closes or flushes caller resources. The original
+`OutputFormat` overload remains available.
 
 ## Corpus comparison
 
-The normal build runs 1,829 tests on each JDK, including 1,584 exact image comparisons
+The normal build runs 1,847 tests on each JDK, including 1,584 exact image comparisons
 from 66 project-authored diagrams, three scales and all shadow/separation settings.
 PNG assertions compare every decoded pixel. SVG assertions rasterise both vectors
 in memory with JSVG 2.2.0 before comparing every pixel. These focused fixtures cover

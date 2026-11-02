@@ -6,6 +6,7 @@ import java.awt.Shape;
 import java.awt.geom.PathIterator;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 
 final class SvgWriter {
@@ -13,6 +14,14 @@ final class SvgWriter {
   }
 
   static void write(Drawing drawing, OutputStream output) throws IOException {
+    output.write(encode(drawing).getBytes(StandardCharsets.UTF_8));
+  }
+
+  static void write(Drawing drawing, Writer output) throws IOException {
+    output.write(encode(drawing));
+  }
+
+  private static String encode(Drawing drawing) {
     StringBuilder svg = new StringBuilder();
     StringBuilder pathData = new StringBuilder();
     double[] coords = new double[6];
@@ -65,7 +74,7 @@ final class SvgWriter {
         .append("</text>\n");
     }
     svg.append("</g>\n</g>\n</svg>\n");
-    output.write(svg.toString().getBytes(StandardCharsets.UTF_8));
+    return svg.toString();
   }
 
   private static void figure(

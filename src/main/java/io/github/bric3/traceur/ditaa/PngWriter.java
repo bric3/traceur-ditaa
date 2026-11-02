@@ -103,7 +103,19 @@ final class PngWriter {
     } finally {
       graphics.dispose();
     }
-    if (!ImageIO.write(image, "png", output)) {
+    // ImageIO flushes its destination while completing chunks; the caller owns stream flushing.
+    var destination = new OutputStream() {
+      @Override
+      public void write(int value) throws IOException {
+        output.write(value);
+      }
+
+      @Override
+      public void write(byte[] bytes, int offset, int length) throws IOException {
+        output.write(bytes, offset, length);
+      }
+    };
+    if (!ImageIO.write(image, "png", destination)) {
       throw new IOException("No PNG encoder available");
     }
   }
