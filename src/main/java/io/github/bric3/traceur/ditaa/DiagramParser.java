@@ -1124,7 +1124,19 @@ final class DiagramParser {
     double x = bounds.getX(), y = bounds.getY(), w = bounds.getWidth(), h = bounds.getHeight();
     double skew = cellWidth / 2.0;
     if (region.tag.isEmpty()) return path;
-    if (region.tag.equals("o")) return new Ellipse2D.Double(x, y, w, h);
+    if (region.tag.equals("o")) {
+      // Start at the top so dashed outlines retain their phase around the ellipse.
+      double mx = x + w / 2, my = y + h / 2;
+      double dx = w * .5522847498307933 / 2, dy = h * .5522847498307933 / 2;
+      Path2D.Float ellipse = new Path2D.Float();
+      ellipse.moveTo(mx, y);
+      ellipse.curveTo(mx + dx, y, x + w, my - dy, x + w, my);
+      ellipse.curveTo(x + w, my + dy, mx + dx, y + h, mx, y + h);
+      ellipse.curveTo(mx - dx, y + h, x, my + dy, x, my);
+      ellipse.curveTo(x, my - dy, mx - dx, y, mx, y);
+      ellipse.closePath();
+      return ellipse;
+    }
     path = new Path2D.Double();
     switch (region.tag) {
       case "c":
