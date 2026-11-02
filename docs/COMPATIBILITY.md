@@ -24,7 +24,7 @@ caller. Rendering never closes or flushes caller resources. The original
 
 ## Corpus comparison
 
-The normal build runs 2,063 tests on each JDK, including 1,800 exact image comparisons
+The normal build runs 2,071 tests on each JDK, including 1,800 exact image comparisons
 from 68 project-authored diagrams and seven blog diagrams, three scales and all
 shadow/separation settings. Blog sources and licensing are recorded in
 [BLOG-SOURCES.md](../src/test/resources/compatibility/BLOG-SOURCES.md).

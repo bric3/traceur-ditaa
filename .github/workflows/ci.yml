@@ -77,6 +77,22 @@ jobs:
           -Poracle="$RUNNER_TEMP/plantuml.jar"
           -PsvgOracle="$RUNNER_TEMP/ditaa.jar"
 
+      - name: Generate line coverage badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: >-
+          jbang src/tools/java/CoverageBadge.java
+          build/reports/jacoco/test/jacocoTestReport.xml
+          build/coverage-badge/coverage.json
+
+      - name: Upload coverage badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-badge
+          path: build/coverage-badge/
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Upload compatibility results
         if: always()
         uses: actions/upload-artifact@v6
@@ -122,6 +138,30 @@ jobs:
             build/reports/tests/
             build/test-results/
           retention-days: 7
+
+  coverage:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Download badge from this build
+        uses: actions/download-artifact@v7
+        with:
+          name: coverage-badge
+          path: build/coverage-badge
+
+      - name: Publish coverage badge data
+        uses: JamesIves/github-pages-deploy-action@v4.9.0
+        with:
+          branch: badges
+          folder: build/coverage-badge
+          force: false
+          commit-message: 'chore: update coverage badge'
 
   release:
     needs: build

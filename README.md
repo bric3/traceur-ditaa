@@ -2,6 +2,7 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.bric3.traceur/traceur-ditaa?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.bric3.traceur/traceur-ditaa)
 [![Build](https://github.com/bric3/traceur-ditaa/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bric3/traceur-ditaa/actions/workflows/ci.yml)
+[![Line coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fbric3%2Ftraceur-ditaa%2Fbadges%2Fcoverage.json)](https://github.com/bric3/traceur-ditaa/actions/workflows/ci.yml?query=branch%3Amain)
 
 An independently implemented Java 11 library for rendering ditaa text as PNG
 and vector SVG, with no third-party runtime dependencies. Rendering is checked

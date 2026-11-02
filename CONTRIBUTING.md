@@ -60,6 +60,9 @@ the POM, JAR filenames and `Implementation-Version` manifest entry.
 [CI](.github/workflows/ci.yml) builds pull requests and pushes to `main`.
 Successful `main` builds publish snapshots and prepare the "Development preview"
 draft release, using the `development-preview` tag and tested JARs.
+They also publish the combined Java 11/25 JaCoCo line coverage to `coverage.json`
+on the `badges` branch. The README badge reads this data through Shields.io;
+updates can take a few minutes to appear because of image caching.
 
 To publish a release:
 
