@@ -3,21 +3,24 @@ plugins {
     `kotlin-dsl`
 }
 
-repositories {
-    mavenCentral()
-    gradlePluginPortal()
-}
-
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
 }
 
+// Gradle's embedded Kotlin compiler supports JVM targets through Java 24.
+kotlin.compilerOptions.jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_24
+tasks.withType<JavaCompile>().configureEach { options.release = 24 }
+
 dependencies {
-    implementation("com.gradleup.nmcp:nmcp:1.6.2")
-    implementation("com.javiersc.semver:semver-gradle-plugin:0.9.0")
-    testImplementation(platform("org.junit:junit-bom:5.11.4"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation(libs.nmcp)
+    implementation(libs.semver.plugin)
+    implementation(libs.spotless.plugin)
+    implementation(libs.yumi.licenser.plugin)
+    testImplementation(gradleTestKit())
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.tabletest.junit)
+    testRuntimeOnly(libs.junit.launcher)
 }
 
 tasks.test {

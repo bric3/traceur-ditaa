@@ -3,11 +3,10 @@ plugins {
     `java-library`
     `maven-publish`
     jacoco
+    id("traceur.quality")
 }
 
 group = "io.github.bric3.traceur"
-
-repositories { mavenCentral() }
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
@@ -21,19 +20,20 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 dependencies {
-    testImplementation(platform("org.junit:junit-bom:5.11.4"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.tabletest.junit)
+    testImplementation(libs.jsvg)
+    testRuntimeOnly(libs.junit.launcher)
 }
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     systemProperty("java.awt.headless", "true")
-    systemProperty("rasterizer", providers.gradleProperty("rasterizer").getOrElse("rsvg-convert"))
 }
 
 jacoco {
-    toolVersion = "0.8.14"
+    toolVersion = libs.versions.jacoco.get()
 }
 
 tasks.jacocoTestReport {

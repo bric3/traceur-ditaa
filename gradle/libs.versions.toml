@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: MPL-2.0
+[versions]
+junit = "5.11.4"
+tabletest = "1.2.2"
+jsvg = "2.2.0"
+jacoco = "0.8.14"
+nmcp = "1.6.2"
+semver = "0.9.0"
+spotless = "8.10.4"
+prince-of-space = "2.3.0"
+tabletest-formatter = "1.1.2"
+yumi-licenser = "4.0.0"
+
+[libraries]
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+tabletest-junit = { module = "org.tabletest:tabletest-junit", version.ref = "tabletest" }
+jsvg = { module = "com.github.weisj:jsvg", version.ref = "jsvg" }
+nmcp = { module = "com.gradleup.nmcp:nmcp", version.ref = "nmcp" }
+semver-plugin = { module = "com.javiersc.semver:semver-gradle-plugin", version.ref = "semver" }
+spotless-plugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
+yumi-licenser-plugin = { module = "dev.yumi.gradle.licenser:dev.yumi.gradle.licenser.gradle.plugin", version.ref = "yumi-licenser" }
