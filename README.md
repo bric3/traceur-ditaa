@@ -1,6 +1,7 @@
 # Traceur Ditaa
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.bric3.traceur/traceur-ditaa?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.bric3.traceur/traceur-ditaa)
+[![MPL 2.0](https://img.shields.io/badge/license-MPL%2D%2D2.0-blue)](LICENSE)
 [![Build](https://github.com/bric3/traceur-ditaa/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bric3/traceur-ditaa/actions/workflows/ci.yml)
 [![Line coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fbric3%2Ftraceur-ditaa%2Fbadges%2Fcoverage.json)](https://github.com/bric3/traceur-ditaa/actions/workflows/ci.yml?query=branch%3Amain)
 
@@ -24,7 +25,10 @@ String diagram = String.join("\n", "+-----+", "| Box |", "+-----+");
 
 try (var output = Files.newOutputStream(Path.of("box.svg"))) {
     var size = new DitaaRenderer().render(
-            diagram, RenderOptions.DEFAULT, RenderTarget.svg(output));
+            diagram,
+            RenderOptions.DEFAULT,
+            RenderTarget.svg(output)
+    );
     System.out.println(size.width() + " x " + size.height());
 }
 ```
